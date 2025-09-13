@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>chat-app</title>
+    <style>
+      body {
+        margin: auto;
+        padding: auto;
+        font-family: Arial, sans-serif;
+      }
+      h1 {
+        color: #df5555;
+        display: inline-block;
+        margin-right: 20px;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+        width: 100vw;
+        gap: 20px;
+      }
+      .chat-box {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 500px;
+        height: 300px;
+        overflow-y: scroll;
+        padding: 10px;
+        margin-bottom: 10px;
+        display: flex;
+        flex-direction: column;
+      }
+      .input-box {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        width: 500px;
+      }
+      input {
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        flex: 1;
+      }
+      .heading {
+        margin-top: 50px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #218838;
+      }
+
+      .logout-btn {
+        background-color: #df5555;
+      }
+      .logout-btn:hover {
+        background-color: #c82333;
+      }
+
+      .message {
+        max-width: 70%;
+        padding: 8px 12px;
+        margin: 5px;
+        border-radius: 8px;
+        word-wrap: break-word;
+      }
+      .my-message {
+        background-color: #dcf8c6;
+        align-self: flex-end;
+        text-align: right;
+      }
+      .other-message {
+        background-color: #f1f0f0;
+        align-self: flex-start;
+        text-align: left;
+      }
+      .time {
+        font-size: 12px;
+        color: gray;
+        display: block;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Heading + Logout -->
+      <div class="heading">
+        <h1>Welcome to Chat App</h1>
+        <button class="logout-btn" style="display:none;">Logout</button>
+      </div>
+
+      <!-- Login -->
+      <div class="input-name">
+        <h5>Please fill details to join chat</h5>
+        <div>
+          <label>Name*</label><br />
+          <input id="name" type="text" placeholder="Enter your name" />
+        </div>
+        <div>
+          <label>Email*</label><br />
+          <input id="email" type="email" placeholder="Enter your email" />
+        </div>
+        <button id="joinBtn">Join Chat</button>
+      </div>
+
+      <!-- Chat -->
+      <div class="text-app" style="display: none; flex-direction: column; align-items: center;">
+        <div class="chat-box"></div>
+        <div class="input-box">
+          <input id="message" type="text" placeholder="Enter your message" />
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      const joinChatButton = document.querySelector("#joinBtn");
+      const chatBox = document.querySelector(".chat-box");
+      const inputBox = document.querySelector("#message");
+      const sendButton = document.querySelector("#sendBtn");
+      const logoutButton = document.querySelector(".logout-btn");
+
+      let name, email;
+
+      function renderMessage(msg, myName) {
+        const messageElement = document.createElement("div");
+        const time = new Date(msg.time).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        if (msg.name === myName) {
+          messageElement.classList.add("message", "my-message");
+        } else {
+          messageElement.classList.add("message", "other-message");
+        }
+
+        messageElement.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}
+          <span class="time">${time}</span>`;
+
+        chatBox.appendChild(messageElement);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      // Join Chat
+      joinChatButton.addEventListener("click", async () => {
+        name = document.querySelector("#name").value;
+        email = document.querySelector("#email").value;
+
+        if (name.trim() && email.trim()) {
+          localStorage.setItem("name", name);
+          localStorage.setItem("email", email);
+
+          document.querySelector(".input-name").style.display = "none";
+          document.querySelector(".text-app").style.display = "flex";
+          logoutButton.style.display = "inline-block";
+
+          // Fetch past messages
+          try {
+            const res = await fetch("http://localhost:9000/messages");
+            const pastMessages = await res.json();
+            pastMessages.forEach((msg) => renderMessage(msg, name));
+          } catch (error) {
+            console.error("Error loading past messages:", error);
+          }
+        }
+      });
+
+      // Logout
+      logoutButton.addEventListener("click", () => {
+        localStorage.removeItem("name");
+        localStorage.removeItem("email");
+        location.reload();
+      });
+
+      // Send message
+      sendButton.addEventListener("click", () => {
+        const message = inputBox.value;
+        if (message.trim() !== "") {
+          socket.emit("chat msg", {
+            name: localStorage.getItem("name"),
+            email: localStorage.getItem("email"),
+            message: message,
+          });
+          inputBox.value = "";
+        }
+      });
+
+      // Receive message
+      socket.on("receive_msg", (data) => {
+        renderMessage(
+          { name: data.name, text: data.message, time: new Date() },
+          localStorage.getItem("name")
+        );
+      });
+    </script>
+  </body>
+</html>
