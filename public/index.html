@@ -105,7 +105,7 @@
       <!-- Heading + Logout -->
       <div class="heading">
         <h1>Welcome to Chat App</h1>
-        <button class="logout-btn" style="display:none;">Logout</button>
+        <button class="logout-btn" style="display: none">Logout</button>
       </div>
 
       <!-- Login -->
@@ -123,7 +123,10 @@
       </div>
 
       <!-- Chat -->
-      <div class="text-app" style="display: none; flex-direction: column; align-items: center;">
+      <div
+        class="text-app"
+        style="display: none; flex-direction: column; align-items: center"
+      >
         <div class="chat-box"></div>
         <div class="input-box">
           <input id="message" type="text" placeholder="Enter your message" />
@@ -158,11 +161,36 @@
         }
 
         messageElement.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}
-          <span class="time">${time}</span>`;
+      <span class="time">${time}</span>`;
 
         chatBox.appendChild(messageElement);
         chatBox.scrollTop = chatBox.scrollHeight;
       }
+
+      // Function to load chat
+      async function loadChat() {
+        document.querySelector(".input-name").style.display = "none";
+        document.querySelector(".text-app").style.display = "flex";
+        logoutButton.style.display = "inline-block";
+
+        try {
+          const res = await fetch("http://localhost:9000/messages");
+          const pastMessages = await res.json();
+          pastMessages.forEach((msg) => renderMessage(msg, name));
+        } catch (error) {
+          console.error("Error loading past messages:", error);
+        }
+      }
+
+      // Auto-login if localStorage has data
+      window.addEventListener("DOMContentLoaded", () => {
+        name = localStorage.getItem("name");
+        email = localStorage.getItem("email");
+
+        if (name && email) {
+          loadChat();
+        }
+      });
 
       // Join Chat
       joinChatButton.addEventListener("click", async () => {
@@ -172,19 +200,7 @@
         if (name.trim() && email.trim()) {
           localStorage.setItem("name", name);
           localStorage.setItem("email", email);
-
-          document.querySelector(".input-name").style.display = "none";
-          document.querySelector(".text-app").style.display = "flex";
-          logoutButton.style.display = "inline-block";
-
-          // Fetch past messages
-          try {
-            const res = await fetch("http://localhost:9000/messages");
-            const pastMessages = await res.json();
-            pastMessages.forEach((msg) => renderMessage(msg, name));
-          } catch (error) {
-            console.error("Error loading past messages:", error);
-          }
+          loadChat();
         }
       });
 
