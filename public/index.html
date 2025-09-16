@@ -1,236 +1,609 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>chat-app</title>
-    <style>
-      body {
-        margin: auto;
-        padding: auto;
-        font-family: Arial, sans-serif;
-      }
-      h1 {
-        color: #df5555;
-        display: inline-block;
-        margin-right: 20px;
-      }
-      .container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: 100vh;
-        width: 100vw;
-        gap: 20px;
-      }
-      .chat-box {
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        width: 500px;
-        height: 300px;
-        overflow-y: scroll;
-        padding: 10px;
-        margin-bottom: 10px;
-        display: flex;
-        flex-direction: column;
-      }
-      .input-box {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        width: 500px;
-      }
-      input {
-        padding: 10px;
-        font-size: 16px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        flex: 1;
-      }
-      .heading {
-        margin-top: 50px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 15px;
-      }
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #28a745;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      button:hover {
-        background-color: #218838;
-      }
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TalkSphere</title>
+<style>
+:root {
+--accent: #df5555;
+--green: #28a745;
+}
+body {
+margin: 0;
+font-family: Arial, sans-serif;
+background: #fafafa;
+}
+.header {
+display: flex;
+justify-content: center;
+align-items: center;
+padding: 18px;
+gap: 20px;
+}
+.header h1 {
+margin: 0;
+color: var(--accent);
+}
+.app {
+display: flex;
+gap: 20px;
+justify-content: center;
+padding: 10px;
+}
+.left-panel {
+width: 220px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+.card {
+background: #fff;
+border-radius: 10px;
+box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+padding: 12px;
+}
+.modes {
+display: flex;
+gap: 8px;
+justify-content: center;
+}
+.user-list {
+max-height: 420px;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 6px;
+}
+.user-item {
+padding: 8px;
+border-radius: 8px;
+cursor: pointer;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+.user-item:hover {
+background: #f3f3f3;
+}
+.chat-area {
+width: 640px;
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+.chat-box {
+background: #fff;
+border-radius: 8px;
+height: 420px;
+padding: 12px;
+overflow-y: auto;
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+.input-row {
+display: flex;
+gap: 8px;
+}
+.input {
+flex: 1;
+padding: 12px;
+border-radius: 20px;
+border: 1px solid #ddd;
+font-size: 14px;
+}
+.btn {
+padding: 10px 16px;
+border-radius: 20px;
+background: var(--green);
+color: #fff;
+border: none;
+cursor: pointer;
+}
+.message {
+max-width: 70%;
+padding: 8px 12px;
+border-radius: 12px;
+word-wrap: break-word;
+}
+.message.me {
+background: #dcf8c6;
+align-self: flex-end;
+text-align: right;
+}
+.message.other {
+background: #f1f0f0;
+align-self: flex-start;
+text-align: left;
+}
+.meta {
+font-size: 12px;
+color: gray;
+margin-top: 6px;
+}
+.badge {
+background: red;
+color: white;
+border-radius: 50%;
+padding: 2px 6px;
+font-size: 12px;
+margin-left: 6px;
+}
 
-      .logout-btn {
-        background-color: #df5555;
-      }
-      .logout-btn:hover {
-        background-color: #c82333;
-      }
+.coming-soon {
+display: flex;
+justify-content: center;
+align-items: center;
+height: 320px;
+color: gray;
+}
+@media (max-width: 900px) {
+.app {
+flex-direction: column;
+align-items: center;
+}
+.left-panel {
+width: 95%;
+}
+.chat-area {
+width: 95%;
+}
+}
+/* login overlay */
+#loginOverlay {
+position: fixed;
+inset: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+background: rgba(0, 0, 0, 0.35);
+}
+.login-card {
+width: 360px;
+padding: 16px;
+border-radius: 8px;
+background: #fff;
+}
+.login-card input {
+width: 95%;
+padding: 8px;
+margin-top: 6px;
+border-radius: 6px;
+border: 1px solid #ddd;
+}
+.login-card .btn {
+width: 100%;
+margin-top: 12px;
+}
 
-      .message {
-        max-width: 70%;
-        padding: 8px 12px;
-        margin: 5px;
-        border-radius: 8px;
-        word-wrap: break-word;
-      }
-      .my-message {
-        background-color: #dcf8c6;
-        align-self: flex-end;
-        text-align: right;
-      }
-      .other-message {
-        background-color: #f1f0f0;
-        align-self: flex-start;
-        text-align: left;
-      }
-      .time {
-        font-size: 12px;
-        color: gray;
-        display: block;
-        margin-top: 4px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <!-- Heading + Logout -->
-      <div class="heading">
-        <h1>Welcome to Chat App</h1>
-        <button class="logout-btn" style="display: none">Logout</button>
-      </div>
+#current-user {
+position: relative;
+display: inline-block;
+cursor: pointer;
+color: #7c7b7b;
+}
 
-      <!-- Login -->
-      <div class="input-name">
-        <h5>Please fill details to join chat</h5>
-        <div>
-          <label>Name*</label><br />
-          <input id="name" type="text" placeholder="Enter your name" />
-        </div>
-        <div>
-          <label>Email*</label><br />
-          <input id="email" type="email" placeholder="Enter your email" />
-        </div>
-        <button id="joinBtn">Join Chat</button>
-      </div>
+#logout-option {
+position: absolute;
+top: 100%;
+left: 0;
+background: #fff;
+border: 1px solid #ccc;
+padding: 5px 10px;
+border-radius: 6px;
+font-size: 14px;
+cursor: pointer;
+white-space: nowrap;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
 
-      <!-- Chat -->
-      <div
-        class="text-app"
-        style="display: none; flex-direction: column; align-items: center"
-      >
-        <div class="chat-box"></div>
-        <div class="input-box">
-          <input id="message" type="text" placeholder="Enter your message" />
-          <button id="sendBtn">Send</button>
-        </div>
-      </div>
-    </div>
+#logout-option:hover {
+background: #f5f5f5;
+}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>TalkSphere 🎙️</h1>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      const socket = io();
+<div id="current-user">
+<span id="username"></span>
+<div id="logout-option" style="display: none">Logout</div>
+</div>
 
-      const joinChatButton = document.querySelector("#joinBtn");
-      const chatBox = document.querySelector(".chat-box");
-      const inputBox = document.querySelector("#message");
-      const sendButton = document.querySelector("#sendBtn");
-      const logoutButton = document.querySelector(".logout-btn");
+<!-- <div
+id="currentUser"
+style="color: rgb(126, 123, 123); cursor: pointer; padding: 10px"
+></div> -->
+</div>
 
-      let name, email;
+<div class="app">
+<div class="left-panel">
+<div class="card">
+<div style="text-align: center; margin-bottom: 8px; font-weight: 600">
+Mode
+</div>
+<div class="modes">
+<label
+><input type="radio" name="mode" value="public" /> Public</label
+>
+<label
+><input type="radio" name="mode" value="private" /> Private</label
+>
+<label
+><input type="radio" name="mode" value="group" /> Group</label
+>
+</div>
+</div>
+<div class="card" id="listCard">
+<div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
+<div class="user-list" id="leftList"></div>
+</div>
+</div>
 
-      function renderMessage(msg, myName) {
-        const messageElement = document.createElement("div");
-        const time = new Date(msg.time).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+<div class="chat-area">
+<div class="card chat-box" id="chatBox"></div>
+<div class="input-row">
+<input
+id="messageInput"
+class="input"
+placeholder="Enter your message..."
+/>
+<button id="sendBtn" class="btn">Send</button>
+</div>
+</div>
+</div>
 
-        if (msg.name === myName) {
-          messageElement.classList.add("message", "my-message");
-        } else {
-          messageElement.classList.add("message", "other-message");
-        }
+<!-- login -->
+<div id="loginOverlay">
+<div class="login-card card">
+<h2 style="margin: 0; color: var(--accent)">Join Chat</h2>
+<p style="color: gray; margin-top: 6px">
+Enter Name, Email and userName (unique)
+</p>
+<div style="margin-top: 8px">
+<label>Name</label><input id="loginName" />
+</div>
+<div style="margin-top: 8px">
+<label>Email</label><input id="loginEmail" />
+</div>
+<div style="margin-top: 8px">
+<label>UserName</label
+><input id="loginUserName" placeholder="abc1234" />
+</div>
+<div style="margin-top: 12px">
+<button id="joinBtn" class="btn">Join</button>
+</div>
+</div>
+</div>
 
-        messageElement.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}
-      <span class="time">${time}</span>`;
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
 
-        chatBox.appendChild(messageElement);
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }
+// UI
+const loginOverlay = document.getElementById("loginOverlay");
+const loginName = document.getElementById("loginName");
+const loginEmail = document.getElementById("loginEmail");
+const loginUserName = document.getElementById("loginUserName");
+const joinBtn = document.getElementById("joinBtn");
 
-      // Function to load chat
-      async function loadChat() {
-        document.querySelector(".input-name").style.display = "none";
-        document.querySelector(".text-app").style.display = "flex";
-        logoutButton.style.display = "inline-block";
+const currentUserDiv = document.getElementById("current-user");
+const usernameSpan = document.getElementById("username");
+const leftList = document.getElementById("leftList");
+const chatBox = document.getElementById("chatBox");
+const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
 
-        try {
-          const res = await fetch("http://localhost:9000/messages");
-          const pastMessages = await res.json();
-          pastMessages.forEach((msg) => renderMessage(msg, name));
-        } catch (error) {
-          console.error("Error loading past messages:", error);
-        }
-      }
+let me = { name: null, email: null, userName: null };
+let mode = localStorage.getItem("mode") || "public";
+let selectedPrivate = localStorage.getItem("selectedPrivate") || null;
 
-      // Auto-login if localStorage has data
-      window.addEventListener("DOMContentLoaded", () => {
-        name = localStorage.getItem("name");
-        email = localStorage.getItem("email");
+// unread counts for private chats
+let unreadCounts = {};
+let allUsers = [];
 
-        if (name && email) {
-          loadChat();
-        }
-      });
+// set radio initial
+document.querySelectorAll('input[name="mode"]').forEach((r) => {
+r.checked = r.value === mode;
+r.addEventListener("change", async (e) => {
+mode = e.target.value;
+localStorage.setItem("mode", mode);
+selectedPrivate = null;
+localStorage.removeItem("selectedPrivate");
+await onModeChange();
+});
+});
 
-      // Join Chat
-      joinChatButton.addEventListener("click", async () => {
-        name = document.querySelector("#name").value;
-        email = document.querySelector("#email").value;
+function timeHM(d) {
+return new Date(d).toLocaleTimeString([], {
+hour: "2-digit",
+minute: "2-digit",
+});
+}
+function clearChat() {
+chatBox.innerHTML = "";
+}
 
-        if (name.trim() && email.trim()) {
-          localStorage.setItem("name", name);
-          localStorage.setItem("email", email);
-          loadChat();
-        }
-      });
+function appendMessage(m) {
+const el = document.createElement("div");
+el.className = "message " + (m.by === me.userName ? "me" : "other");
+el.innerHTML = `<div><strong>${
+m.by === me.userName ? "You" : m.by
+}</strong></div>
+<div>${m.text}</div>
+<div class="meta">${timeHM(m.time)}</div>`;
+chatBox.appendChild(el);
+chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-      // Logout
-      logoutButton.addEventListener("click", () => {
-        localStorage.removeItem("name");
-        localStorage.removeItem("email");
-        location.reload();
-      });
+// fetch users
+async function fetchUsers() {
+try {
+const res = await fetch("/users");
+const data = await res.json();
+allUsers = data;
+renderUserList(data);
+} catch (err) {
+console.error("fetch users err", err);
+}
+}
 
-      // Send message
-      sendButton.addEventListener("click", () => {
-        const message = inputBox.value;
-        if (message.trim() !== "") {
-          socket.emit("chat msg", {
-            name: localStorage.getItem("name"),
-            email: localStorage.getItem("email"),
-            message: message,
-          });
-          inputBox.value = "";
-        }
-      });
+function renderUserList(users) {
+leftList.innerHTML = "";
+if (mode === "public") {
+leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
+return;
+}
+if (mode === "group") {
+["QA Team", "Ops", "Managers"].forEach((g) => {
+const it = document.createElement("div");
+it.className = "user-item";
+it.textContent = g;
+it.onclick = () => {
+clearChat();
+const el = document.createElement("div");
+el.className = "coming-soon";
+el.textContent = "Group chat coming soon.";
+chatBox.appendChild(el);
+};
+leftList.appendChild(it);
+});
+return;
+}
+// private mode: show all users except me
+users.forEach((u) => {
+if (u.userName === me.userName) return;
+const it = document.createElement("div");
+it.className = "user-item";
 
-      // Receive message
-      socket.on("receive_msg", (data) => {
-        renderMessage(
-          { name: data.name, text: data.message, time: new Date() },
-          localStorage.getItem("name")
-        );
-      });
-    </script>
-  </body>
+// unread badge
+let badge = "";
+if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0) {
+badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
+}
+
+it.innerHTML = `<div>
+${u.name}
+<div style="font-size:11px;color:gray">@${u.userName}</div>
+</div>${badge}`;
+
+it.onclick = async () => {
+selectedPrivate = u.userName;
+localStorage.setItem("selectedPrivate", selectedPrivate);
+unreadCounts[u.userName] = 0; // reset unread
+renderUserList(users);
+await loadPrivate(selectedPrivate);
+};
+leftList.appendChild(it);
+});
+}
+
+// load public messages
+async function loadPublic() {
+clearChat();
+try {
+const res = await fetch("/messages/public");
+const data = await res.json();
+data.forEach((m) => appendMessage(m));
+} catch (err) {
+console.error(err);
+}
+}
+
+// load private conversation with other
+async function loadPrivate(other) {
+clearChat();
+try {
+const res = await fetch(`/messages/private/${me.userName}/${other}`);
+const data = await res.json();
+if (!data.length) {
+const node = document.createElement("div");
+node.className = "coming-soon";
+node.textContent = "No messages yet — start the conversation.";
+chatBox.appendChild(node);
+return;
+}
+data.forEach((m) => appendMessage(m));
+} catch (err) {
+console.error(err);
+}
+}
+
+async function onModeChange() {
+clearChat();
+if (mode === "public") {
+await fetchUsers();
+await loadPublic();
+} else if (mode === "private") {
+await fetchUsers();
+if (selectedPrivate) await loadPrivate(selectedPrivate);
+} else if (mode === "group") {
+fetchUsers();
+const el = document.createElement("div");
+el.className = "coming-soon";
+el.textContent = "Group functionality coming soon.";
+chatBox.appendChild(el);
+}
+}
+
+// join flow
+joinBtn.addEventListener("click", async () => {
+const n = loginName.value.trim();
+const e = loginEmail.value.trim();
+const u = loginUserName.value.trim();
+if (!n || !e || !u) return alert("fill all fields");
+try {
+const res = await fetch("/users", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ name: n, email: e, userName: u }),
+});
+const user = await res.json();
+me = { name: user.name, email: user.email, userName: user.userName };
+localStorage.setItem("name", me.name);
+localStorage.setItem("email", me.email);
+localStorage.setItem("userName", me.userName);
+loginOverlay.style.display = "none";
+usernameSpan.textContent = me.name; // show only name
+socket.emit("identify", { userName: me.userName });
+await onModeChange();
+} catch (err) {
+console.error("join err", err);
+}
+});
+
+// auto-login
+window.addEventListener("DOMContentLoaded", async () => {
+const sname = localStorage.getItem("name");
+const semail = localStorage.getItem("email");
+const suser = localStorage.getItem("userName");
+const smode = localStorage.getItem("mode");
+const sselected = localStorage.getItem("selectedPrivate");
+if (sname && semail && suser) {
+me = { name: sname, email: semail, userName: suser };
+loginOverlay.style.display = "none";
+usernameSpan.textContent = me.name;
+if (smode) {
+mode = smode;
+document
+.querySelectorAll('input[name="mode"]')
+.forEach((r) => (r.checked = r.value === mode));
+}
+if (sselected) selectedPrivate = sselected;
+socket.emit("identify", { userName: me.userName });
+await onModeChange();
+} else {
+if (smode) {
+mode = smode;
+document
+.querySelectorAll('input[name="mode"]')
+.forEach((r) => (r.checked = r.value === mode));
+}
+}
+});
+
+// logout on clicking name
+const logoutOption = document.getElementById("logout-option");
+
+// toggle logout option when clicking username
+currentUserDiv.addEventListener("click", (e) => {
+e.stopPropagation(); // prevent click bubbling
+logoutOption.style.display =
+logoutOption.style.display === "block" ? "none" : "block";
+});
+
+// logout when clicking "Logout"
+logoutOption.addEventListener("click", () => {
+localStorage.clear();
+socket.disconnect();
+location.reload();
+});
+
+// hide logout option when clicking anywhere else
+document.addEventListener("click", () => {
+logoutOption.style.display = "none";
+});
+
+// send message
+sendBtn.addEventListener("click", async () => {
+const txt = messageInput.value.trim();
+if (!txt) return;
+if (!me.userName) return alert("login first");
+
+if (mode === "public") {
+socket.emit("chat msg", {
+name: me.name,
+email: me.email,
+userName: me.userName,
+chatType: "public",
+message: txt,
+});
+appendMessage({ text: txt, by: me.userName, time: new Date() });
+} else if (mode === "private") {
+if (!selectedPrivate) return alert("select user to chat privately");
+socket.emit("chat msg", {
+name: me.name,
+email: me.email,
+userName: me.userName,
+chatType: "private",
+to: selectedPrivate,
+message: txt,
+});
+appendMessage({ text: txt, by: me.userName, time: new Date() });
+} else if (mode === "group") {
+socket.emit("chat msg", {
+name: me.name,
+email: me.email,
+userName: me.userName,
+chatType: "group",
+message: txt,
+});
+appendMessage({ text: txt, by: me.userName, time: new Date() });
+}
+messageInput.value = "";
+});
+
+// receive
+socket.on("receive_msg", async (data) => {
+if (!me.userName) return;
+
+if (data.chatType === "public") {
+if (mode === "public")
+appendMessage({
+text: data.message,
+by: data.userName,
+time: data.time || new Date(),
+});
+} else if (data.chatType === "private") {
+const from = data.userName;
+const to = data.to;
+if (mode === "private") {
+if (
+(from === me.userName && to === selectedPrivate) ||
+(to === me.userName && from === selectedPrivate)
+) {
+appendMessage({
+text: data.message,
+by: from,
+time: data.time || new Date(),
+});
+} else {
+// increment unread
+if (to === me.userName) {
+unreadCounts[from] = (unreadCounts[from] || 0) + 1;
+renderUserList(allUsers);
+}
+}
+} else {
+if (to === me.userName) {
+unreadCounts[from] = (unreadCounts[from] || 0) + 1;
+}
+renderUserList(allUsers);
+}
+}
+});
+</script>
+</body>
 </html>
