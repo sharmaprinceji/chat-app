@@ -1,609 +1,593 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>TalkSphere</title>
-<style>
-:root {
---accent: #df5555;
---green: #28a745;
-}
-body {
-margin: 0;
-font-family: Arial, sans-serif;
-background: #fafafa;
-}
-.header {
-display: flex;
-justify-content: center;
-align-items: center;
-padding: 18px;
-gap: 20px;
-}
-.header h1 {
-margin: 0;
-color: var(--accent);
-}
-.app {
-display: flex;
-gap: 20px;
-justify-content: center;
-padding: 10px;
-}
-.left-panel {
-width: 220px;
-display: flex;
-flex-direction: column;
-gap: 10px;
-}
-.card {
-background: #fff;
-border-radius: 10px;
-box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-padding: 12px;
-}
-.modes {
-display: flex;
-gap: 8px;
-justify-content: center;
-}
-.user-list {
-max-height: 420px;
-overflow-y: auto;
-display: flex;
-flex-direction: column;
-gap: 6px;
-}
-.user-item {
-padding: 8px;
-border-radius: 8px;
-cursor: pointer;
-display: flex;
-justify-content: space-between;
-align-items: center;
-}
-.user-item:hover {
-background: #f3f3f3;
-}
-.chat-area {
-width: 640px;
-display: flex;
-flex-direction: column;
-gap: 10px;
-}
-.chat-box {
-background: #fff;
-border-radius: 8px;
-height: 420px;
-padding: 12px;
-overflow-y: auto;
-display: flex;
-flex-direction: column;
-gap: 8px;
-}
-.input-row {
-display: flex;
-gap: 8px;
-}
-.input {
-flex: 1;
-padding: 12px;
-border-radius: 20px;
-border: 1px solid #ddd;
-font-size: 14px;
-}
-.btn {
-padding: 10px 16px;
-border-radius: 20px;
-background: var(--green);
-color: #fff;
-border: none;
-cursor: pointer;
-}
-.message {
-max-width: 70%;
-padding: 8px 12px;
-border-radius: 12px;
-word-wrap: break-word;
-}
-.message.me {
-background: #dcf8c6;
-align-self: flex-end;
-text-align: right;
-}
-.message.other {
-background: #f1f0f0;
-align-self: flex-start;
-text-align: left;
-}
-.meta {
-font-size: 12px;
-color: gray;
-margin-top: 6px;
-}
-.badge {
-background: red;
-color: white;
-border-radius: 50%;
-padding: 2px 6px;
-font-size: 12px;
-margin-left: 6px;
-}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TalkSphere</title>
+  <style>
+    :root {
+      --accent: #df5555;
+      --green: #28a745;
+    }
 
-.coming-soon {
-display: flex;
-justify-content: center;
-align-items: center;
-height: 320px;
-color: gray;
-}
-@media (max-width: 900px) {
-.app {
-flex-direction: column;
-align-items: center;
-}
-.left-panel {
-width: 95%;
-}
-.chat-area {
-width: 95%;
-}
-}
-/* login overlay */
-#loginOverlay {
-position: fixed;
-inset: 0;
-display: flex;
-align-items: center;
-justify-content: center;
-background: rgba(0, 0, 0, 0.35);
-}
-.login-card {
-width: 360px;
-padding: 16px;
-border-radius: 8px;
-background: #fff;
-}
-.login-card input {
-width: 95%;
-padding: 8px;
-margin-top: 6px;
-border-radius: 6px;
-border: 1px solid #ddd;
-}
-.login-card .btn {
-width: 100%;
-margin-top: 12px;
-}
+    /* ======== GLOBAL ======== */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #fafafa;
+    }
+    h1, h2 { margin: 0; }
 
-#current-user {
-position: relative;
-display: inline-block;
-cursor: pointer;
-color: #7c7b7b;
-}
+    /* ======== HEADER ======== */
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      padding: 18px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+      position: relative;
+    }
+    .header h1 { color: var(--accent); }
+    #current-user { position: relative; cursor: pointer; color: #7c7b7b; }
+    #logout-option {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      display: none;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    #logout-option:hover { background: #f5f5f5; }
 
-#logout-option {
-position: absolute;
-top: 100%;
-left: 0;
-background: #fff;
-border: 1px solid #ccc;
-padding: 5px 10px;
-border-radius: 6px;
-font-size: 14px;
-cursor: pointer;
-white-space: nowrap;
-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
+    /* ======== APP LAYOUT ======== */
+    .app {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      padding: 10px;
+    }
+    .left-panel {
+      width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-area {
+      width: 640px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-#logout-option:hover {
-background: #f5f5f5;
-}
-</style>
+    /* ======== CARDS ======== */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      padding: 12px;
+    }
+
+    /* ======== MODES ======== */
+    .modes {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    /* ======== USER LIST ======== */
+    .user-list {
+      max-height: 420px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .user-item {
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .user-item:hover { background: #f3f3f3; }
+    .badge {
+      background: red;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+
+    /* ======== CHAT BOX ======== */
+    .chat-box {
+      background: #fff;
+      border-radius: 8px;
+      height: 420px;
+      padding: 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 20px;
+      border: 1px solid #ddd;
+      font-size: 14px;
+    }
+    .btn {
+      padding: 10px 16px;
+      border-radius: 20px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* ======== MESSAGE STYLES ======== */
+    .message {
+      max-width: 70%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      word-wrap: break-word;
+    }
+    .message.me { background: #dcf8c6; align-self: flex-end; text-align: right; }
+    .message.other { background: #f1f0f0; align-self: flex-start; text-align: left; }
+    .meta { font-size: 12px; color: gray; margin-top: 6px; }
+
+    /* ======== COMING SOON ======== */
+    .coming-soon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 320px;
+      color: gray;
+      font-style: italic;
+    }
+
+    /* ======== LOGIN OVERLAY ======== */
+    #loginOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.35);
+    }
+    .login-card {
+      width: 360px;
+      padding: 16px;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .login-card input {
+      width: 95%;
+      padding: 8px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+    .login-card .btn { width: 100%; margin-top: 12px; }
+
+    /* ======== RESPONSIVE ======== */
+    @media (max-width: 900px) {
+      .app { flex-direction: column; align-items: center; }
+      .left-panel, .chat-area { width: 95%; }
+    }
+  </style>
 </head>
+
 <body>
-<div class="header">
-<h1>TalkSphere 🎙️</h1>
+  <!-- HEADER -->
+  <div class="header">
+    <h1>TalkSphere 🎙️</h1>
+    <div id="current-user">
+      <span id="username"></span>
+      <div id="logout-option">Logout</div>
+    </div>
+  </div>
 
-<div id="current-user">
-<span id="username"></span>
-<div id="logout-option" style="display: none">Logout</div>
-</div>
+  <!-- APP LAYOUT -->
+  <div class="app">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="card">
+        <div style="text-align: center; margin-bottom: 8px; font-weight: 600">Mode</div>
+        <div class="modes">
+          <label><input type="radio" name="mode" value="public" /> Public</label>
+          <label><input type="radio" name="mode" value="private" /> Private</label>
+          <label><input type="radio" name="mode" value="group" /> Group</label>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
+        <div class="user-list" id="leftList"></div>
+      </div>
+    </div>
 
-<!-- <div
-id="currentUser"
-style="color: rgb(126, 123, 123); cursor: pointer; padding: 10px"
-></div> -->
-</div>
+    <!-- CHAT AREA -->
+    <div class="chat-area">
+      <div class="card chat-box" id="chatBox"></div>
+      <div class="input-row">
+        <input id="messageInput" class="input" placeholder="Enter your message..." />
+        <button id="sendBtn" class="btn">Send</button>
+      </div>
+    </div>
+  </div>
 
-<div class="app">
-<div class="left-panel">
-<div class="card">
-<div style="text-align: center; margin-bottom: 8px; font-weight: 600">
-Mode
-</div>
-<div class="modes">
-<label
-><input type="radio" name="mode" value="public" /> Public</label
->
-<label
-><input type="radio" name="mode" value="private" /> Private</label
->
-<label
-><input type="radio" name="mode" value="group" /> Group</label
->
-</div>
-</div>
-<div class="card" id="listCard">
-<div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
-<div class="user-list" id="leftList"></div>
-</div>
-</div>
+  <!-- LOGIN / SIGNUP OVERLAY -->
+  <div id="loginOverlay">
+    <div class="login-card card">
+      <h2 style="margin: 0; color: var(--accent)">Welcome to TalkSphere</h2>
+      <div style="display: flex; gap: 12px; margin: 12px 0">
+        <button id="showLogin" class="btn" style="flex: 1; background: var(--accent)">Login</button>
+        <button id="showSignup" class="btn" style="flex: 1; background: var(--green)">Signup</button>
+      </div>
 
-<div class="chat-area">
-<div class="card chat-box" id="chatBox"></div>
-<div class="input-row">
-<input
-id="messageInput"
-class="input"
-placeholder="Enter your message..."
-/>
-<button id="sendBtn" class="btn">Send</button>
-</div>
-</div>
-</div>
+      <!-- LOGIN -->
+      <div id="loginForm">
+        <p style="color: gray; margin: 6px 0">Enter username & login</p>
+        <label>Username</label>
+        <input id="loginUserName" placeholder="yourUser123" />
+        <button id="loginBtn" class="btn">Login</button>
+      </div>
 
-<!-- login -->
-<div id="loginOverlay">
-<div class="login-card card">
-<h2 style="margin: 0; color: var(--accent)">Join Chat</h2>
-<p style="color: gray; margin-top: 6px">
-Enter Name, Email and userName (unique)
-</p>
-<div style="margin-top: 8px">
-<label>Name</label><input id="loginName" />
-</div>
-<div style="margin-top: 8px">
-<label>Email</label><input id="loginEmail" />
-</div>
-<div style="margin-top: 8px">
-<label>UserName</label
-><input id="loginUserName" placeholder="abc1234" />
-</div>
-<div style="margin-top: 12px">
-<button id="joinBtn" class="btn">Join</button>
-</div>
-</div>
-</div>
+      <!-- SIGNUP -->
+      <div id="signupForm" style="display: none">
+        <p style="color: gray; margin: 6px 0">Enter Name, Email & unique Username</p>
+        <label>Name</label><input id="signupName" />
+        <label>Email</label><input id="signupEmail" />
+        <label>Username</label><input id="signupUserName" placeholder="abc1234" />
+        <button id="signupBtn" class="btn">Signup</button>
+      </div>
+    </div>
+  </div>
 
-<script src="/socket.io/socket.io.js"></script>
+  <!-- JS -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io();
+  // =========================
+  // 1️⃣ Initialize Socket & DOM elements
+  // =========================
+  const socket = io();
 
-// UI
-const loginOverlay = document.getElementById("loginOverlay");
-const loginName = document.getElementById("loginName");
-const loginEmail = document.getElementById("loginEmail");
-const loginUserName = document.getElementById("loginUserName");
-const joinBtn = document.getElementById("joinBtn");
+  // Login / Signup elements
+  const loginOverlay = document.getElementById("loginOverlay");
+  const loginForm = document.getElementById("loginForm");
+  const signupForm = document.getElementById("signupForm");
 
-const currentUserDiv = document.getElementById("current-user");
-const usernameSpan = document.getElementById("username");
-const leftList = document.getElementById("leftList");
-const chatBox = document.getElementById("chatBox");
-const messageInput = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn");
+  const loginUserName = document.getElementById("loginUserName");
+  const signupName = document.getElementById("signupName");
+  const signupEmail = document.getElementById("signupEmail");
+  const signupUserName = document.getElementById("signupUserName");
 
-let me = { name: null, email: null, userName: null };
-let mode = localStorage.getItem("mode") || "public";
-let selectedPrivate = localStorage.getItem("selectedPrivate") || null;
+  const loginBtn = document.getElementById("loginBtn");
+  const signupBtn = document.getElementById("signupBtn");
+  const showLogin = document.getElementById("showLogin");
+  const showSignup = document.getElementById("showSignup");
 
-// unread counts for private chats
-let unreadCounts = {};
-let allUsers = [];
+  // Chat UI elements
+  const usernameSpan = document.getElementById("username");
+  const currentUserDiv = document.getElementById("current-user");
+  const logoutOption = document.getElementById("logout-option");
+  const leftList = document.getElementById("leftList");
+  const chatBox = document.getElementById("chatBox");
+  const messageInput = document.getElementById("messageInput");
+  const sendBtn = document.getElementById("sendBtn");
 
-// set radio initial
-document.querySelectorAll('input[name="mode"]').forEach((r) => {
-r.checked = r.value === mode;
-r.addEventListener("change", async (e) => {
-mode = e.target.value;
-localStorage.setItem("mode", mode);
-selectedPrivate = null;
-localStorage.removeItem("selectedPrivate");
-await onModeChange();
-});
-});
+  // =========================
+  // 2️⃣ Global State
+  // =========================
+  let token = localStorage.getItem("token") || null;
+  let me = { name: null, email: null, userName: null };
+  let mode = localStorage.getItem("mode") || "public"; // public/private/group
+  let selectedPrivate = localStorage.getItem("selectedPrivate") || null;
+  let unreadCounts = {}; // unread counts for private messages
+  let allUsers = [];
 
-function timeHM(d) {
-return new Date(d).toLocaleTimeString([], {
-hour: "2-digit",
-minute: "2-digit",
-});
-}
-function clearChat() {
-chatBox.innerHTML = "";
-}
+  // =========================
+  // 3️⃣ Toggle Login/Signup forms
+  // =========================
+  showLogin.onclick = () => { loginForm.style.display = "block"; signupForm.style.display = "none"; };
+  showSignup.onclick = () => { loginForm.style.display = "none"; signupForm.style.display = "block"; };
 
-function appendMessage(m) {
-const el = document.createElement("div");
-el.className = "message " + (m.by === me.userName ? "me" : "other");
-el.innerHTML = `<div><strong>${
-m.by === me.userName ? "You" : m.by
-}</strong></div>
+  // =========================
+  // 4️⃣ Login / Signup Handlers
+  // =========================
+  signupBtn.addEventListener("click", async () => {
+    const n = signupName.value.trim();
+    const e = signupEmail.value.trim();
+    const u = signupUserName.value.trim();
+    if (!n || !e || !u) return alert("Fill all fields");
+
+    try {
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n, email: e, userName: u, exist: false })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.message || "Signup failed");
+
+      // Save user info & token
+      token = data.token;
+      localStorage.setItem("token", token);
+      me = data.user;
+      localStorage.setItem("name", me.name);
+      localStorage.setItem("email", me.email);
+      localStorage.setItem("userName", me.userName);
+
+      loginOverlay.style.display = "none";
+      usernameSpan.textContent = me.name;
+      socket.emit("identify", { userName: me.userName });
+      await onModeChange();
+    } catch (err) { console.error("signup error:", err); alert("Signup failed"); }
+  });
+
+  loginBtn.addEventListener("click", async () => {
+    const u = loginUserName.value.trim();
+    if (!u) return alert("Enter username");
+
+    try {
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userName: u, exist: true })
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data.message || "Login failed");
+
+      token = data.token;
+      localStorage.setItem("token", token);
+      me = data.user;
+      localStorage.setItem("name", me.name);
+      localStorage.setItem("email", me.email);
+      localStorage.setItem("userName", me.userName);
+
+      loginOverlay.style.display = "none";
+      usernameSpan.textContent = me.name;
+      socket.emit("identify", { userName: me.userName });
+      await onModeChange();
+    } catch (err) { console.error("login error:", err); alert("Login failed"); }
+  });
+
+  // =========================
+  // 5️⃣ Auto-login on page load
+  // =========================
+  window.addEventListener("DOMContentLoaded", async () => {
+    const sname = localStorage.getItem("name");
+    const semail = localStorage.getItem("email");
+    const suser = localStorage.getItem("userName");
+    const smode = localStorage.getItem("mode");
+    const sselected = localStorage.getItem("selectedPrivate");
+
+    if (sname && semail && suser) {
+      me = { name: sname, email: semail, userName: suser };
+      loginOverlay.style.display = "none";
+      usernameSpan.textContent = me.name;
+
+      if (smode) mode = smode;
+      document.querySelectorAll('input[name="mode"]').forEach(r => r.checked = r.value === mode);
+
+      if (sselected) selectedPrivate = sselected;
+
+      socket.emit("identify", { userName: me.userName });
+      await onModeChange();
+    }
+  });
+
+  // =========================
+  // 6️⃣ Logout functionality
+  // =========================
+  currentUserDiv.addEventListener("click", (e) => {
+    e.stopPropagation();
+    logoutOption.style.display = logoutOption.style.display === "block" ? "none" : "block";
+  });
+
+  logoutOption.addEventListener("click", () => {
+    localStorage.clear();
+    socket.disconnect();
+    location.reload();
+  });
+
+  document.addEventListener("click", () => { logoutOption.style.display = "none"; });
+
+  // =========================
+  // 7️⃣ Mode selection (public/private/group)
+  // =========================
+  document.querySelectorAll('input[name="mode"]').forEach(r => {
+    r.checked = r.value === mode;
+    r.addEventListener("change", async (e) => {
+      mode = e.target.value;
+      localStorage.setItem("mode", mode);
+      selectedPrivate = null;
+      localStorage.removeItem("selectedPrivate");
+      await onModeChange();
+    });
+  });
+
+  // =========================
+  // 8️⃣ Utility Functions
+  // =========================
+  function clearChat() { chatBox.innerHTML = ""; }
+
+  function timeHM(d) { return new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+
+  function appendMessage(m) {
+    const el = document.createElement("div");
+    el.className = "message " + (m.by === me.userName ? "me" : "other");
+    el.innerHTML = `<div><strong>${m.by === me.userName ? "You" : m.by}</strong></div>
 <div>${m.text}</div>
 <div class="meta">${timeHM(m.time)}</div>`;
-chatBox.appendChild(el);
-chatBox.scrollTop = chatBox.scrollHeight;
-}
+    chatBox.appendChild(el);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
 
-// fetch users
-async function fetchUsers() {
-try {
-const res = await fetch("/users");
-const data = await res.json();
-allUsers = data;
-renderUserList(data);
-} catch (err) {
-console.error("fetch users err", err);
-}
-}
+  // =========================
+  // 9️⃣ Fetch & Render Users
+  // =========================
+  async function fetchUsers() {
+    try {
+      const res = await fetch("/users");
+      const data = await res.json();
+      allUsers = data;
+      renderUserList(data);
+    } catch (err) { console.error("fetch users error", err); }
+  }
 
-function renderUserList(users) {
-leftList.innerHTML = "";
-if (mode === "public") {
-leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
-return;
-}
-if (mode === "group") {
-["QA Team", "Ops", "Managers"].forEach((g) => {
-const it = document.createElement("div");
-it.className = "user-item";
-it.textContent = g;
-it.onclick = () => {
-clearChat();
-const el = document.createElement("div");
-el.className = "coming-soon";
-el.textContent = "Group chat coming soon.";
-chatBox.appendChild(el);
-};
-leftList.appendChild(it);
-});
-return;
-}
-// private mode: show all users except me
-users.forEach((u) => {
-if (u.userName === me.userName) return;
-const it = document.createElement("div");
-it.className = "user-item";
+  function renderUserList(users) {
+    leftList.innerHTML = "";
 
-// unread badge
-let badge = "";
-if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0) {
-badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
-}
+    if (mode === "public") {
+      leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
+      return;
+    }
 
-it.innerHTML = `<div>
-${u.name}
-<div style="font-size:11px;color:gray">@${u.userName}</div>
-</div>${badge}`;
+    if (mode === "group") {
+      ["QA Team", "Ops", "Managers"].forEach(g => {
+        const it = document.createElement("div");
+        it.className = "user-item";
+        it.textContent = g;
+        it.onclick = () => {
+          clearChat();
+          const el = document.createElement("div");
+          el.className = "coming-soon";
+          el.textContent = "Group chat coming soon.";
+          chatBox.appendChild(el);
+        };
+        leftList.appendChild(it);
+      });
+      return;
+    }
 
-it.onclick = async () => {
-selectedPrivate = u.userName;
-localStorage.setItem("selectedPrivate", selectedPrivate);
-unreadCounts[u.userName] = 0; // reset unread
-renderUserList(users);
-await loadPrivate(selectedPrivate);
-};
-leftList.appendChild(it);
-});
-}
+    users.forEach(u => {
+      if (u.userName === me.userName) return;
+      const it = document.createElement("div");
+      it.className = "user-item";
 
-// load public messages
-async function loadPublic() {
-clearChat();
-try {
-const res = await fetch("/messages/public");
-const data = await res.json();
-data.forEach((m) => appendMessage(m));
-} catch (err) {
-console.error(err);
-}
-}
+      let badge = "";
+      if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0) {
+        badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
+      }
 
-// load private conversation with other
-async function loadPrivate(other) {
-clearChat();
-try {
-const res = await fetch(`/messages/private/${me.userName}/${other}`);
-const data = await res.json();
-if (!data.length) {
-const node = document.createElement("div");
-node.className = "coming-soon";
-node.textContent = "No messages yet — start the conversation.";
-chatBox.appendChild(node);
-return;
-}
-data.forEach((m) => appendMessage(m));
-} catch (err) {
-console.error(err);
-}
-}
+      it.innerHTML = `<div>${u.name}<div style="font-size:11px;color:gray">@${u.userName}</div></div>${badge}`;
 
-async function onModeChange() {
-clearChat();
-if (mode === "public") {
-await fetchUsers();
-await loadPublic();
-} else if (mode === "private") {
-await fetchUsers();
-if (selectedPrivate) await loadPrivate(selectedPrivate);
-} else if (mode === "group") {
-fetchUsers();
-const el = document.createElement("div");
-el.className = "coming-soon";
-el.textContent = "Group functionality coming soon.";
-chatBox.appendChild(el);
-}
-}
+      it.onclick = async () => {
+        selectedPrivate = u.userName;
+        localStorage.setItem("selectedPrivate", selectedPrivate);
+        unreadCounts[u.userName] = 0;
+        renderUserList(allUsers);
+        await loadPrivate(selectedPrivate);
+      };
+      leftList.appendChild(it);
+    });
+  }
 
-// join flow
-joinBtn.addEventListener("click", async () => {
-const n = loginName.value.trim();
-const e = loginEmail.value.trim();
-const u = loginUserName.value.trim();
-if (!n || !e || !u) return alert("fill all fields");
-try {
-const res = await fetch("/users", {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({ name: n, email: e, userName: u }),
-});
-const user = await res.json();
-me = { name: user.name, email: user.email, userName: user.userName };
-localStorage.setItem("name", me.name);
-localStorage.setItem("email", me.email);
-localStorage.setItem("userName", me.userName);
-loginOverlay.style.display = "none";
-usernameSpan.textContent = me.name; // show only name
-socket.emit("identify", { userName: me.userName });
-await onModeChange();
-} catch (err) {
-console.error("join err", err);
-}
-});
+  // =========================
+  //  🔟 Load Messages
+  // =========================
+  async function loadPublic() {
+    clearChat();
+    try {
+      const res = await fetch("/messages/public");
+      const data = await res.json();
+      data.forEach(m => appendMessage(m));
+    } catch (err) { console.error(err); }
+  }
 
-// auto-login
-window.addEventListener("DOMContentLoaded", async () => {
-const sname = localStorage.getItem("name");
-const semail = localStorage.getItem("email");
-const suser = localStorage.getItem("userName");
-const smode = localStorage.getItem("mode");
-const sselected = localStorage.getItem("selectedPrivate");
-if (sname && semail && suser) {
-me = { name: sname, email: semail, userName: suser };
-loginOverlay.style.display = "none";
-usernameSpan.textContent = me.name;
-if (smode) {
-mode = smode;
-document
-.querySelectorAll('input[name="mode"]')
-.forEach((r) => (r.checked = r.value === mode));
-}
-if (sselected) selectedPrivate = sselected;
-socket.emit("identify", { userName: me.userName });
-await onModeChange();
-} else {
-if (smode) {
-mode = smode;
-document
-.querySelectorAll('input[name="mode"]')
-.forEach((r) => (r.checked = r.value === mode));
-}
-}
-});
+  async function loadPrivate(other) {
+    clearChat();
+    try {
+      const res = await fetch(`/messages/private/${me.userName}/${other}`);
+      const data = await res.json();
+      if (!data.length) {
+        const node = document.createElement("div");
+        node.className = "coming-soon";
+        node.textContent = "No messages yet — start the conversation.";
+        chatBox.appendChild(node);
+        return;
+      }
+      data.forEach(m => appendMessage(m));
+    } catch (err) { console.error(err); }
+  }
 
-// logout on clicking name
-const logoutOption = document.getElementById("logout-option");
+  async function onModeChange() {
+    clearChat();
+    if (mode === "public") { await fetchUsers(); await loadPublic(); }
+    else if (mode === "private") { await fetchUsers(); if (selectedPrivate) await loadPrivate(selectedPrivate); }
+    else if (mode === "group") {
+      fetchUsers();
+      const el = document.createElement("div");
+      el.className = "coming-soon";
+      el.textContent = "Group chat coming soon.";
+      chatBox.appendChild(el);
+    }
+  }
 
-// toggle logout option when clicking username
-currentUserDiv.addEventListener("click", (e) => {
-e.stopPropagation(); // prevent click bubbling
-logoutOption.style.display =
-logoutOption.style.display === "block" ? "none" : "block";
-});
+  // =========================
+  // 1️⃣1️⃣ Send Message
+  // =========================
+  sendBtn.addEventListener("click", () => {
+    const txt = messageInput.value.trim();
+    if (!txt) return;
+    if (!me.userName) return alert("Login first");
 
-// logout when clicking "Logout"
-logoutOption.addEventListener("click", () => {
-localStorage.clear();
-socket.disconnect();
-location.reload();
-});
+    const msgData = {
+      name: me.name,
+      email: me.email,
+      userName: me.userName,
+      message: txt,
+      time: new Date(),
+      chatType: mode
+    };
 
-// hide logout option when clicking anywhere else
-document.addEventListener("click", () => {
-logoutOption.style.display = "none";
-});
+    if (mode === "private") {
+      if (!selectedPrivate) return alert("Select user for private chat");
+      msgData.to = selectedPrivate;
+    }
 
-// send message
-sendBtn.addEventListener("click", async () => {
-const txt = messageInput.value.trim();
-if (!txt) return;
-if (!me.userName) return alert("login first");
+    socket.emit("chat msg", msgData);
+    appendMessage({ text: txt, by: me.userName, time: msgData.time });
+    messageInput.value = "";
+  });
 
-if (mode === "public") {
-socket.emit("chat msg", {
-name: me.name,
-email: me.email,
-userName: me.userName,
-chatType: "public",
-message: txt,
-});
-appendMessage({ text: txt, by: me.userName, time: new Date() });
-} else if (mode === "private") {
-if (!selectedPrivate) return alert("select user to chat privately");
-socket.emit("chat msg", {
-name: me.name,
-email: me.email,
-userName: me.userName,
-chatType: "private",
-to: selectedPrivate,
-message: txt,
-});
-appendMessage({ text: txt, by: me.userName, time: new Date() });
-} else if (mode === "group") {
-socket.emit("chat msg", {
-name: me.name,
-email: me.email,
-userName: me.userName,
-chatType: "group",
-message: txt,
-});
-appendMessage({ text: txt, by: me.userName, time: new Date() });
-}
-messageInput.value = "";
-});
+  // =========================
+  // 1️⃣2️⃣ Receive Message
+  // =========================
+  socket.on("receive_msg", (data) => {
+    if (!me.userName) return;
 
-// receive
-socket.on("receive_msg", async (data) => {
-if (!me.userName) return;
+    if (data.chatType === "public" || data.chatType === "group") {
+      appendMessage({ text: data.message, by: data.userName, time: data.time });
+    } else if (data.chatType === "private") {
+      const from = data.userName;
+      const to = data.to;
 
-if (data.chatType === "public") {
-if (mode === "public")
-appendMessage({
-text: data.message,
-by: data.userName,
-time: data.time || new Date(),
-});
-} else if (data.chatType === "private") {
-const from = data.userName;
-const to = data.to;
-if (mode === "private") {
-if (
-(from === me.userName && to === selectedPrivate) ||
-(to === me.userName && from === selectedPrivate)
-) {
-appendMessage({
-text: data.message,
-by: from,
-time: data.time || new Date(),
-});
-} else {
-// increment unread
-if (to === me.userName) {
-unreadCounts[from] = (unreadCounts[from] || 0) + 1;
-renderUserList(allUsers);
-}
-}
-} else {
-if (to === me.userName) {
-unreadCounts[from] = (unreadCounts[from] || 0) + 1;
-}
-renderUserList(allUsers);
-}
-}
-});
+      if ((from === me.userName && to === selectedPrivate) || (to === me.userName && from === selectedPrivate)) {
+        appendMessage({ text: data.message, by: from, time: data.time });
+      } else if (to === me.userName) {
+        unreadCounts[from] = (unreadCounts[from] || 0) + 1;
+        renderUserList(allUsers);
+      }
+    }
+  });
 </script>
+
 </body>
 </html>

@@ -47,8 +47,8 @@ ensurePublicConversation().catch(console.error);
 
 /* ---------- REST API ---------- */
 
-// create or get user
-app.post("/users", async (req, res) => {
+// create or login user
+app.post("/login", async (req, res) => {
   try {
     const { name, email, userName, exist = false } = req.body;
 
@@ -61,14 +61,11 @@ app.post("/users", async (req, res) => {
     // ---------- LOGIN FLOW ----------
     if (exist) {
       if (!user) {
-        return res
-          .status(404)
-          .json({ message: "User not found. Please sign up." });
+        return res.status(404).json({ message: "User not found. Please sign up." });
       }
-      // generate token
       const token = jwt.sign(
         { id: user._id, userName: user.userName },
-         process.env.JWT_SECRET,
+        process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );
       return res.json({ message: "Login successful", token, user });
@@ -76,29 +73,26 @@ app.post("/users", async (req, res) => {
 
     // ---------- SIGNUP FLOW ----------
     if (user) {
-      return res
-        .status(400)
-        .json({ message: "Account already exists. Please login." });
+      return res.status(400).json({ message: "Account already exists. Please login." });
     }
 
-    // create new user
+    if (!name || !email) {
+      return res.status(400).json({ message: "Name and Email required for signup." });
+    }
+
     user = await User.create({ name, email, userName });
     const token = jwt.sign(
       { id: user._id, userName: user.userName },
-       process.env.JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-
-    res
-      .status(201)
-      .json({ message: "Account created successfully", token, user });
+    return res.status(201).json({ message: "Account created successfully", token, user });
   } catch (err) {
     console.error(err);
-    res
-      .status(500)
-      .json({ message: "Error handling user", error: err.message });
+    res.status(500).json({ message: "Error handling user", error: err.message });
   }
 });
+
 
 // list users (basic info)
 app.get("/users", async (req, res) => {
