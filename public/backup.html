@@ -1,444 +1,818 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TalkSphere</title>
-  <style>
-    :root { --accent: #df5555; --green: #28a745; }
-
-    /* ======== GLOBAL ======== */
-    body { margin: 0; font-family: Arial, sans-serif; background: #fafafa; }
-    h1, h2 { margin: 0; }
-
-    /* ======== HEADER ======== */
-    .header {
-      display: flex; justify-content: center; align-items: center; gap: 20px;
-      padding: 18px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-      position: relative;
-    }
-    .header h1 { color: var(--accent); }
-    #current-user { position: relative; cursor: pointer; color: #7c7b7b; }
-    #logout-option {
-      position: absolute; top: 100%; left: 0; background: #fff; border: 1px solid #ccc;
-      padding: 5px 10px; border-radius: 6px; font-size: 14px; cursor: pointer;
-      display: none; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    #logout-option:hover { background: #f5f5f5; }
-
-    /* ======== APP LAYOUT ======== */
-    .app { display: flex; gap: 20px; justify-content: center; padding: 10px; }
-    .left-panel { width: 220px; display: flex; flex-direction: column; gap: 10px; }
-
-     /*========== chat box and input row ==========*/
-      
-    .chat-area { width:640px; display:flex; flex-direction:column; gap:10px; }
-    .chat-box { background:#fff; border-radius:8px; height:420px; padding:12px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
-
-    .input-row { display:flex; gap:8px; align-items:center; }
-    .input-wrapper { position: relative; flex:1; }
-    .input { width:100%; padding:12px; border-radius:20px; border:1px solid #ddd; font-size:14px; box-sizing:border-box; }
-    .btn { padding:10px 16px; border-radius:20px; background:var(--green); color:#fff; border:none; cursor:pointer; }
-
-    #emojiBtn { position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; font-size:20px; user-select:none; }
-    emoji-picker { position:absolute; bottom:110%; right:0; z-index:1000; width:320px; max-height:360px; box-shadow:0 6px 18px rgba(0,0,0,0.12); }
-     
-    /*========== end chat box and input row ==========*/
-
-    /* ======== CARDS & LISTS ======== */
-    
-    .card {
-      background: #fff; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); padding: 12px;
-    }
-    .modes { display: flex; gap: 8px; justify-content: center; }
-    .user-list { max-height: 420px; overflow-y: auto; display:flex; flex-direction: column; gap:6px; }
-    .user-item { padding: 8px; border-radius: 8px; cursor: pointer; display:flex; justify-content:space-between; align-items:center; }
-    .user-item:hover { background: #f3f3f3; }
-    .badge { background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 12px; margin-left: 6px; }
-
-    .chat-box { background: #fff; border-radius: 8px; height: 420px; padding: 12px; overflow-y: auto; display:flex; flex-direction:column; gap:8px; }
-    .input-row { display:flex; gap:8px; }
-    .input { flex:1; padding:12px; border-radius:20px; border:1px solid #ddd; font-size:14px; }
-    .btn { padding:10px 16px; border-radius:20px; background:var(--green); color:#fff; border:none; cursor:pointer; }
-
-    .message { max-width:70%; padding:8px 12px; border-radius:12px; word-wrap:break-word; }
-    .message.me { background:#dcf8c6; align-self:flex-end; text-align:right; }
-    .message.other { background:#f1f0f0; align-self:flex-start; text-align:left; }
-    .meta { font-size:12px; color:gray; margin-top:6px; }
-
-    .coming-soon { display:flex; justify-content:center; align-items:center; height:320px; color:gray; font-style:italic; }
-
-    #loginOverlay { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.35); }
-    .login-card { width:360px; padding:16px; border-radius:8px; background:#fff; }
-    .login-card input { width:95%; padding:8px; margin-top:6px; border-radius:6px; border:1px solid #ddd; }
-    .login-card .btn { width:100%; margin-top:12px; }
-
-    @media (max-width:900px) { .app { flex-direction: column; align-items:center; } .left-panel,.chat-area { width:95%; } }
-  </style>
-
-  <!-- load the emoji-picker once -->
-  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
-</head>
-
-<body>
-  <!-- HEADER -->
-  <div class="header">
-    <h1>TalkSphere 🎙️</h1>
-    <div id="current-user">
-      <span id="username"></span>
-      <div id="logout-option">Logout</div>
-    </div>
-  </div>
-
-  <!-- APP LAYOUT -->
-  <div class="app">
-    <div class="left-panel">
-      <div class="card">
-        <div style="text-align:center;margin-bottom:8px;font-weight:600">Mode</div>
-        <div class="modes">
-          <label><input type="radio" name="mode" value="public" /> Public</label>
-          <label><input type="radio" name="mode" value="private" /> Private</label>
-          <label><input type="radio" name="mode" value="group" /> Group</label>
-        </div>
-      </div>
-      <div class="card">
-        <div style="font-weight:600;margin-bottom:8px">Users / Groups</div>
-        <div class="user-list" id="leftList"></div>
-      </div>
-    </div>
-
-    <div class="chat-area">
-      <div class="card chat-box" id="chatBox"></div>
-
-      <div class="input-row">
-        <div class="input-wrapper">
-          <input id="messageInput" class="input" placeholder="Enter your message..." />
-          <span id="emojiBtn">😊</span>
-          <!-- initially hidden -->
-          <emoji-picker id="emojiPicker" style="display:none;"></emoji-picker>
-        </div>
-        <button id="sendBtn" class="btn">Send</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- LOGIN / SIGNUP OVERLAY -->
-  <div id="loginOverlay">
-    <div class="login-card card">
-      <h2 style="margin:0;color:var(--accent)">Welcome to TalkSphere</h2>
-      <div style="display:flex;gap:12px;margin:12px 0">
-        <button id="showLogin" class="btn" style="flex:1;background:var(--accent)">Login</button>
-        <button id="showSignup" class="btn" style="flex:1;background:var(--green)">Signup</button>
-      </div>
-
-      <div id="loginForm">
-        <p style="color:gray;margin:6px 0">Enter username & login</p>
-        <label>Username</label>
-        <input id="loginUserName" placeholder="yourUser123" />
-        <button id="loginBtn" class="btn">Login</button>
-      </div>
-
-      <div id="signupForm" style="display:none">
-        <p style="color:gray;margin:6px 0">Enter Name, Email & unique Username</p>
-        <label>Name</label><input id="signupName" />
-        <label>Email</label><input id="signupEmail" />
-        <label>Username</label><input id="signupUserName" placeholder="abc1234" />
-        <button id="signupBtn" class="btn">Signup</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Socket.io -->
-  <script src="/socket.io/socket.io.js"></script>
-
-  <script>
-    // ========== DOM refs ==========
-    const socket = io();
-
-    const loginOverlay = document.getElementById("loginOverlay");
-    const loginForm = document.getElementById("loginForm");
-    const signupForm = document.getElementById("signupForm");
-    const loginUserName = document.getElementById("loginUserName");
-    const signupName = document.getElementById("signupName");
-    const signupEmail = document.getElementById("signupEmail");
-    const signupUserName = document.getElementById("signupUserName");
-    const loginBtn = document.getElementById("loginBtn");
-    const signupBtn = document.getElementById("signupBtn");
-    const showLogin = document.getElementById("showLogin");
-    const showSignup = document.getElementById("showSignup");
-
-    const usernameSpan = document.getElementById("username");
-    const currentUserDiv = document.getElementById("current-user");
-    const logoutOption = document.getElementById("logout-option");
-    const leftList = document.getElementById("leftList");
-    const chatBox = document.getElementById("chatBox");
-    const messageInput = document.getElementById("messageInput");
-    const sendBtn = document.getElementById("sendBtn");
-
-    const emojiBtn = document.getElementById("emojiBtn");
-    const emojiPicker = document.getElementById("emojiPicker");
-
-    // ========== state ==========
-    let token = localStorage.getItem("token") || null;
-    let me = { name: null, email: null, userName: null };
-    let mode = localStorage.getItem("mode") || "public";
-    let selectedPrivate = localStorage.getItem("selectedPrivate") || null;
-    let unreadCounts = {};
-    let allUsers = [];
-
-    // ========== UI toggles ==========
-    showLogin.onclick = () => { loginForm.style.display = "block"; signupForm.style.display = "none"; };
-    showSignup.onclick = () => { loginForm.style.display = "none"; signupForm.style.display = "block"; };
-
-    // ========== login/signup ==========
-    signupBtn.addEventListener("click", async () => {
-      const n = signupName.value.trim(), e = signupEmail.value.trim(), u = signupUserName.value.trim();
-      if (!n || !e || !u) return alert("Fill all fields");
-      try {
-        const res = await fetch("/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: n, email: e, userName: u, exist: false })
-        });
-        const data = await res.json();
-        if (!res.ok) return alert(data.message || "Signup failed");
-        token = data.token; localStorage.setItem("token", token);
-        me = data.user;
-        localStorage.setItem("name", me.name); localStorage.setItem("email", me.email); localStorage.setItem("userName", me.userName);
-        loginOverlay.style.display = "none";
-        usernameSpan.textContent = me.name;
-        socket.emit("identify", { userName: me.userName });
-        await onModeChange();
-      } catch (err) { console.error(err); alert("Signup failed"); }
-    });
-
-    loginBtn.addEventListener("click", async () => {
-      const u = loginUserName.value.trim();
-      if (!u) return alert("Enter username");
-      try {
-        const res = await fetch("/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userName: u, exist: true })
-        });
-        const data = await res.json();
-        if (!res.ok) return alert(data.message || "Login failed");
-        token = data.token; localStorage.setItem("token", token);
-        me = data.user;
-        localStorage.setItem("name", me.name); localStorage.setItem("email", me.email); localStorage.setItem("userName", me.userName);
-        loginOverlay.style.display = "none";
-        usernameSpan.textContent = me.name;
-        socket.emit("identify", { userName: me.userName });
-        await onModeChange();
-      } catch (err) { console.error(err); alert("Login failed"); }
-    });
-
-    // autologin
-    window.addEventListener("DOMContentLoaded", async () => {
-      const sname = localStorage.getItem("name");
-      const semail = localStorage.getItem("email");
-      const suser = localStorage.getItem("userName");
-      const smode = localStorage.getItem("mode");
-      const sselected = localStorage.getItem("selectedPrivate");
-      if (sname && semail && suser) {
-        me = { name: sname, email: semail, userName: suser };
-        loginOverlay.style.display = "none";
-        usernameSpan.textContent = me.name;
-        if (smode) mode = smode;
-        document.querySelectorAll('input[name="mode"]').forEach(r => r.checked = r.value === mode);
-        if (sselected) selectedPrivate = sselected;
-        socket.emit("identify", { userName: me.userName });
-        await onModeChange();
-      } else {
-        if (smode) { mode = smode; document.querySelectorAll('input[name="mode"]').forEach(r => r.checked = r.value === mode); }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TalkSphere</title>
+    <style>
+      :root {
+        --accent: #df5555;
+        --green: #28a745;
       }
-    });
 
-    // logout
-    currentUserDiv.addEventListener("click", (e) => { e.stopPropagation(); logoutOption.style.display = logoutOption.style.display === "block" ? "none" : "block"; });
-    logoutOption.addEventListener("click", () => { localStorage.clear(); socket.disconnect(); location.reload(); });
-    document.addEventListener("click", () => { logoutOption.style.display = "none"; });
+      /* ======== GLOBAL ======== */
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #fafafa;
+      }
+      h1,
+      h2 {
+        margin: 0;
+      }
 
-    // modes
-    document.querySelectorAll('input[name="mode"]').forEach(r => {
-      r.checked = r.value === mode;
-      r.addEventListener("change", async (e) => {
-        mode = e.target.value; localStorage.setItem("mode", mode);
-        selectedPrivate = null; localStorage.removeItem("selectedPrivate");
-        await onModeChange();
+      /* ======== HEADER ======== */
+      .header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        padding: 18px;
+        background: #fff;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+        position: relative;
+      }
+      .header h1 {
+        color: var(--accent);
+      }
+      #current-user {
+        position: relative;
+        cursor: pointer;
+        color: #7c7b7b;
+      }
+      #logout-option {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: #fff;
+        border: 1px solid #ccc;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        display: none;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      }
+      #logout-option:hover {
+        background: #f5f5f5;
+      }
+
+      /* ======== APP LAYOUT ======== */
+      .app {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        padding: 10px;
+      }
+      .left-panel {
+        width: 220px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      /*========== chat box and input row ==========*/
+
+      .chat-area {
+        width: 640px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .chat-box {
+        background: #fff;
+        border-radius: 8px;
+        height: 420px;
+        padding: 12px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .input-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .input-wrapper {
+        position: relative;
+        flex: 1;
+      }
+
+      #fileBtn {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 18px;
+        user-select: none;
+      }
+
+      .input {
+        padding-left: 38px;
+        padding-right: 38px;
+        text-align: center;
+      }
+
+      .input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      .btn {
+        padding: 10px 16px;
+        border-radius: 20px;
+        background: var(--green);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      #emojiBtn {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        font-size: 20px;
+        user-select: none;
+      }
+      emoji-picker {
+        position: absolute;
+        bottom: 110%;
+        right: 0;
+        z-index: 1000;
+        width: 320px;
+        max-height: 360px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+      }
+
+      /*========== end chat box and input row ==========*/
+
+      /* ======== CARDS & LISTS ======== */
+
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+        padding: 12px;
+      }
+      .modes {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+      }
+      .user-list {
+        max-height: 420px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .user-item {
+        padding: 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .user-item:hover {
+        background: #f3f3f3;
+      }
+      .badge {
+        background: red;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 12px;
+        margin-left: 6px;
+      }
+
+      .chat-box {
+        background: #fff;
+        border-radius: 8px;
+        height: 420px;
+        padding: 12px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .input {
+        flex: 1;
+        padding: 12px;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+      }
+      .btn {
+        padding: 10px 16px;
+        border-radius: 20px;
+        background: var(--green);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      .message {
+        max-width: 70%;
+        padding: 8px 12px;
+        border-radius: 12px;
+        word-wrap: break-word;
+      }
+      .message.me {
+        background: #dcf8c6;
+        align-self: flex-end;
+        text-align: right;
+      }
+      .message.other {
+        background: #f1f0f0;
+        align-self: flex-start;
+        text-align: left;
+      }
+      .meta {
+        font-size: 12px;
+        color: gray;
+        margin-top: 6px;
+      }
+
+      .coming-soon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 320px;
+        color: gray;
+        font-style: italic;
+      }
+
+      #loginOverlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.35);
+      }
+      .login-card {
+        width: 360px;
+        padding: 16px;
+        border-radius: 8px;
+        background: #fff;
+      }
+      .login-card input {
+        width: 95%;
+        padding: 8px;
+        margin-top: 6px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+      }
+      .login-card .btn {
+        width: 100%;
+        margin-top: 12px;
+      }
+
+      @media (max-width: 900px) {
+        .app {
+          flex-direction: column;
+          align-items: center;
+        }
+        .left-panel,
+        .chat-area {
+          width: 95%;
+        }
+      }
+    </style>
+
+    <!-- load the emoji-picker once -->
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"
+    ></script>
+  </head>
+
+  <body>
+    <!-- HEADER -->
+    <div class="header">
+      <h1>TalkSphere 🎙️</h1>
+      <div id="current-user">
+        <span id="username"></span>
+        <div id="logout-option">Logout</div>
+      </div>
+    </div>
+
+    <!-- APP LAYOUT -->
+    <div class="app">
+      <div class="left-panel">
+        <div class="card">
+          <div style="text-align: center; margin-bottom: 8px; font-weight: 600">
+            Mode
+          </div>
+          <div class="modes">
+            <label
+              ><input type="radio" name="mode" value="public" /> Public</label
+            >
+            <label
+              ><input type="radio" name="mode" value="private" /> Private</label
+            >
+            <label
+              ><input type="radio" name="mode" value="group" /> Group</label
+            >
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
+          <div class="user-list" id="leftList"></div>
+        </div>
+      </div>
+
+      <div class="chat-area">
+        <div class="card chat-box" id="chatBox"></div>
+
+        <div class="input-row">
+          <div class="input-wrapper">
+            <span id="fileBtn">📎</span>
+            <input type="file" id="fileInput" style="display:none" />
+            <input
+              id="messageInput"
+              class="input"
+              placeholder="Enter your message..."
+            />
+            <span id="emojiBtn">😊</span>
+            <!-- initially hidden -->
+            <emoji-picker id="emojiPicker" style="display: none"></emoji-picker>
+          </div>
+          <button id="sendBtn" class="btn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGIN / SIGNUP OVERLAY -->
+    <div id="loginOverlay">
+      <div class="login-card card">
+        <h2 style="margin: 0; color: var(--accent)">Welcome to TalkSphere</h2>
+        <div style="display: flex; gap: 12px; margin: 12px 0">
+          <button
+            id="showLogin"
+            class="btn"
+            style="flex: 1; background: var(--accent)"
+          >
+            Login
+          </button>
+          <button
+            id="showSignup"
+            class="btn"
+            style="flex: 1; background: var(--green)"
+          >
+            Signup
+          </button>
+        </div>
+
+        <div id="loginForm">
+          <p style="color: gray; margin: 6px 0">Enter username & login</p>
+          <label>Username</label>
+          <input id="loginUserName" placeholder="yourUser123" />
+          <button id="loginBtn" class="btn">Login</button>
+        </div>
+
+        <div id="signupForm" style="display: none">
+          <p style="color: gray; margin: 6px 0">
+            Enter Name, Email & unique Username
+          </p>
+          <label>Name</label><input id="signupName" /> <label>Email</label
+          ><input id="signupEmail" /> <label>Username</label
+          ><input id="signupUserName" placeholder="abc1234" />
+          <button id="signupBtn" class="btn">Signup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Socket.io -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+      // ========== DOM refs ==========
+      const socket = io();
+
+      const loginOverlay = document.getElementById("loginOverlay");
+      const loginForm = document.getElementById("loginForm");
+      const signupForm = document.getElementById("signupForm");
+      const loginUserName = document.getElementById("loginUserName");
+      const signupName = document.getElementById("signupName");
+      const signupEmail = document.getElementById("signupEmail");
+      const signupUserName = document.getElementById("signupUserName");
+      const loginBtn = document.getElementById("loginBtn");
+      const signupBtn = document.getElementById("signupBtn");
+      const showLogin = document.getElementById("showLogin");
+      const showSignup = document.getElementById("showSignup");
+
+      const usernameSpan = document.getElementById("username");
+      const currentUserDiv = document.getElementById("current-user");
+      const logoutOption = document.getElementById("logout-option");
+      const leftList = document.getElementById("leftList");
+      const chatBox = document.getElementById("chatBox");
+      const messageInput = document.getElementById("messageInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      const emojiBtn = document.getElementById("emojiBtn");
+      const emojiPicker = document.getElementById("emojiPicker");
+
+      // file attachment button (non-functional placeholder)
+        const fileBtn = document.getElementById("fileBtn");
+        const fileInput = document.getElementById("fileInput");
+
+        fileBtn.addEventListener("click", () => {
+          fileInput.click();
+        });
+
+        fileInput.addEventListener("change", () => {
+          console.log("File input changed");
+          if (fileInput.files.length > 0) {
+            console.log("Selected file:", fileInput.files[0]);
+            alert("File selected: " + fileInput.files[0].name);
+          }
+        });
+
+      // ========== state ==========
+      let token = localStorage.getItem("token") || null;
+      let me = { name: null, email: null, userName: null };
+      let mode = localStorage.getItem("mode") || "public";
+      let selectedPrivate = localStorage.getItem("selectedPrivate") || null;
+      let unreadCounts = {};
+      let allUsers = [];
+
+      // ========== UI toggles ==========
+      showLogin.onclick = () => {
+        loginForm.style.display = "block";
+        signupForm.style.display = "none";
+      };
+      showSignup.onclick = () => {
+        loginForm.style.display = "none";
+        signupForm.style.display = "block";
+      };
+
+      // ========== login/signup ==========
+      signupBtn.addEventListener("click", async () => {
+        const n = signupName.value.trim(),
+          e = signupEmail.value.trim(),
+          u = signupUserName.value.trim();
+        if (!n || !e || !u) return alert("Fill all fields");
+        try {
+          const res = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: n,
+              email: e,
+              userName: u,
+              exist: false,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) return alert(data.message || "Signup failed");
+          token = data.token;
+          localStorage.setItem("token", token);
+          me = data.user;
+          localStorage.setItem("name", me.name);
+          localStorage.setItem("email", me.email);
+          localStorage.setItem("userName", me.userName);
+          loginOverlay.style.display = "none";
+          usernameSpan.textContent = me.name;
+          socket.emit("identify", { userName: me.userName });
+          await onModeChange();
+        } catch (err) {
+          console.error(err);
+          alert("Signup failed");
+        }
       });
-    });
 
-    // ========== Emoji picker logic (fixed) ==========
-    // Toggle picker visibility (stop propagation so outside click handler won't immediately hide)
-    emojiBtn.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      emojiPicker.style.display = (emojiPicker.style.display === "block") ? "none" : "block";
-    });
+      loginBtn.addEventListener("click", async () => {
+        const u = loginUserName.value.trim();
+        if (!u) return alert("Enter username");
+        try {
+          const res = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userName: u, exist: true }),
+          });
+          const data = await res.json();
+          if (!res.ok) return alert(data.message || "Login failed");
+          token = data.token;
+          localStorage.setItem("token", token);
+          me = data.user;
+          localStorage.setItem("name", me.name);
+          localStorage.setItem("email", me.email);
+          localStorage.setItem("userName", me.userName);
+          loginOverlay.style.display = "none";
+          usernameSpan.textContent = me.name;
+          socket.emit("identify", { userName: me.userName });
+          await onModeChange();
+        } catch (err) {
+          console.error(err);
+          alert("Login failed");
+        }
+      });
 
-    // robust handler to extract emoji string from event detail
-    function extractEmojiFromDetail(detail) {
-      if (!detail) return "";
-      // common: detail.unicode
-      if (detail.unicode) return detail.unicode;
-      // some builds: detail.emoji might be a string or an object
-      if (typeof detail.emoji === "string") return detail.emoji;
-      if (detail.emoji && typeof detail.emoji === "object") {
-        // try several property names
-        return detail.emoji.unicode || detail.emoji.character || detail.emoji.native || detail.emoji.shortcode || "";
-      }
-      // fallback: detail has 'shortcode' or 'native' or 'character'
-      return detail.shortcode || detail.native || detail.character || "";
-    }
+      // autologin
+      window.addEventListener("DOMContentLoaded", async () => {
+        const sname = localStorage.getItem("name");
+        const semail = localStorage.getItem("email");
+        const suser = localStorage.getItem("userName");
+        const smode = localStorage.getItem("mode");
+        const sselected = localStorage.getItem("selectedPrivate");
+        if (sname && semail && suser) {
+          me = { name: sname, email: semail, userName: suser };
+          loginOverlay.style.display = "none";
+          usernameSpan.textContent = me.name;
+          if (smode) mode = smode;
+          document
+            .querySelectorAll('input[name="mode"]')
+            .forEach((r) => (r.checked = r.value === mode));
+          if (sselected) selectedPrivate = sselected;
+          socket.emit("identify", { userName: me.userName });
+          await onModeChange();
+        } else {
+          if (smode) {
+            mode = smode;
+            document
+              .querySelectorAll('input[name="mode"]')
+              .forEach((r) => (r.checked = r.value === mode));
+          }
+        }
+      });
 
-    // handler to insert emoji into input
-    function onEmojiPicked(e) {
-      try {
+      // logout
+      currentUserDiv.addEventListener("click", (e) => {
         e.stopPropagation();
-        const emojiStr = extractEmojiFromDetail(e.detail);
-        if (!emojiStr) return;
-        // insert emoji at caret position if desired, for now append
-        const start = messageInput.selectionStart || messageInput.value.length;
-        const end = messageInput.selectionEnd || start;
-        const before = messageInput.value.slice(0, start);
-        const after = messageInput.value.slice(end);
-        messageInput.value = before + emojiStr + after;
-        // move caret after inserted emoji
-        const caretPos = start + emojiStr.length;
-        messageInput.focus();
-        messageInput.setSelectionRange(caretPos, caretPos);
-        // hide picker after selection
-        emojiPicker.style.display = "none";
+        logoutOption.style.display =
+          logoutOption.style.display === "block" ? "none" : "block";
+      });
+      logoutOption.addEventListener("click", () => {
+        localStorage.clear();
+        socket.disconnect();
+        location.reload();
+      });
+      document.addEventListener("click", () => {
+        logoutOption.style.display = "none";
+      });
+
+      // modes
+      document.querySelectorAll('input[name="mode"]').forEach((r) => {
+        r.checked = r.value === mode;
+        r.addEventListener("change", async (e) => {
+          mode = e.target.value;
+          localStorage.setItem("mode", mode);
+          selectedPrivate = null;
+          localStorage.removeItem("selectedPrivate");
+          await onModeChange();
+        });
+      });
+
+      // ========== Emoji picker logic (fixed) ==========
+      // Toggle picker visibility (stop propagation so outside click handler won't immediately hide)
+      emojiBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        emojiPicker.style.display =
+          emojiPicker.style.display === "block" ? "none" : "block";
+      });
+
+      // robust handler to extract emoji string from event detail
+      function extractEmojiFromDetail(detail) {
+        if (!detail) return "";
+        // common: detail.unicode
+        if (detail.unicode) return detail.unicode;
+        // some builds: detail.emoji might be a string or an object
+        if (typeof detail.emoji === "string") return detail.emoji;
+        if (detail.emoji && typeof detail.emoji === "object") {
+          // try several property names
+          return (
+            detail.emoji.unicode ||
+            detail.emoji.character ||
+            detail.emoji.native ||
+            detail.emoji.shortcode ||
+            ""
+          );
+        }
+        // fallback: detail has 'shortcode' or 'native' or 'character'
+        return detail.shortcode || detail.native || detail.character || "";
+      }
+
+      // handler to insert emoji into input
+      function onEmojiPicked(e) {
+        try {
+          e.stopPropagation();
+          const emojiStr = extractEmojiFromDetail(e.detail);
+          if (!emojiStr) return;
+          // insert emoji at caret position if desired, for now append
+          const start =
+            messageInput.selectionStart || messageInput.value.length;
+          const end = messageInput.selectionEnd || start;
+          const before = messageInput.value.slice(0, start);
+          const after = messageInput.value.slice(end);
+          messageInput.value = before + emojiStr + after;
+          // move caret after inserted emoji
+          const caretPos = start + emojiStr.length;
+          messageInput.focus();
+          messageInput.setSelectionRange(caretPos, caretPos);
+          // hide picker after selection
+          emojiPicker.style.display = "none";
+        } catch (err) {
+          console.error("emoji handler err:", err);
+        }
+      }
+
+      // attach both directly to the element and to document as fallback
+      try {
+        if (emojiPicker) {
+          emojiPicker.addEventListener("emoji-click", onEmojiPicked);
+        }
+        document.addEventListener("emoji-click", onEmojiPicked);
       } catch (err) {
-        console.error("emoji handler err:", err);
+        console.warn("Failed to attach emoji listeners:", err);
       }
-    }
 
-    // attach both directly to the element and to document as fallback
-    try {
-      if (emojiPicker) {
-        emojiPicker.addEventListener("emoji-click", onEmojiPicked);
+      // hide picker when clicking outside
+      document.addEventListener("click", (e) => {
+        if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
+          emojiPicker.style.display = "none";
+        }
+      });
+
+      // ========== helpers & chat logic (kept intact) ==========
+      function clearChat() {
+        chatBox.innerHTML = "";
       }
-      document.addEventListener("emoji-click", onEmojiPicked);
-    } catch (err) {
-      console.warn("Failed to attach emoji listeners:", err);
-    }
-
-    // hide picker when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!emojiPicker.contains(e.target) && e.target !== emojiBtn) {
-        emojiPicker.style.display = "none";
+      function timeHM(d) {
+        return new Date(d).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       }
-    });
 
-    // ========== helpers & chat logic (kept intact) ==========
-    function clearChat() { chatBox.innerHTML = ""; }
-    function timeHM(d) { return new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
-
-    function appendMessage(m) {
-      const el = document.createElement("div");
-      el.className = "message " + (m.by === me.userName ? "me" : "other");
-      el.innerHTML = `<div><strong>${m.by === me.userName ? "You" : m.by}</strong></div>
+      function appendMessage(m) {
+        const el = document.createElement("div");
+        el.className = "message " + (m.by === me.userName ? "me" : "other");
+        el.innerHTML = `<div><strong>${
+          m.by === me.userName ? "You" : m.by
+        }</strong></div>
 <div>${m.text}</div>
 <div class="meta">${timeHM(m.time)}</div>`;
-      chatBox.appendChild(el);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    async function fetchUsers() {
-      try {
-        const res = await fetch("/users");
-        const data = await res.json();
-        allUsers = data;
-        renderUserList(data);
-      } catch (err) { console.error("fetch users error", err); }
-    }
-
-    function renderUserList(users) {
-      leftList.innerHTML = "";
-      if (mode === "public") {
-        leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
-        return;
+        chatBox.appendChild(el);
+        chatBox.scrollTop = chatBox.scrollHeight;
       }
-      if (mode === "group") {
-        ["QA Team", "Ops", "Managers"].forEach(g => {
+
+      async function fetchUsers() {
+        try {
+          const res = await fetch("/users");
+          const data = await res.json();
+          allUsers = data;
+          renderUserList(data);
+        } catch (err) {
+          console.error("fetch users error", err);
+        }
+      }
+
+      function renderUserList(users) {
+        leftList.innerHTML = "";
+        if (mode === "public") {
+          leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
+          return;
+        }
+        if (mode === "group") {
+          ["QA Team", "Ops", "Managers"].forEach((g) => {
+            const it = document.createElement("div");
+            it.className = "user-item";
+            it.textContent = g;
+            it.onclick = () => {
+              clearChat();
+              const el = document.createElement("div");
+              el.className = "coming-soon";
+              el.textContent = "Group chat coming soon.";
+              chatBox.appendChild(el);
+            };
+            leftList.appendChild(it);
+          });
+          return;
+        }
+        users.forEach((u) => {
+          if (u.userName === me.userName) return;
           const it = document.createElement("div");
           it.className = "user-item";
-          it.textContent = g;
-          it.onclick = () => { clearChat(); const el = document.createElement("div"); el.className = "coming-soon"; el.textContent = "Group chat coming soon."; chatBox.appendChild(el); };
+          let badge = "";
+          if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0)
+            badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
+          it.innerHTML = `<div>${u.name}<div style="font-size:11px;color:gray">@${u.userName}</div></div>${badge}`;
+          it.onclick = async () => {
+            selectedPrivate = u.userName;
+            localStorage.setItem("selectedPrivate", selectedPrivate);
+            unreadCounts[u.userName] = 0;
+            renderUserList(allUsers);
+            await loadPrivate(selectedPrivate);
+          };
           leftList.appendChild(it);
         });
-        return;
       }
-      users.forEach(u => {
-        if (u.userName === me.userName) return;
-        const it = document.createElement("div");
-        it.className = "user-item";
-        let badge = "";
-        if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0) badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
-        it.innerHTML = `<div>${u.name}<div style="font-size:11px;color:gray">@${u.userName}</div></div>${badge}`;
-        it.onclick = async () => {
-          selectedPrivate = u.userName; localStorage.setItem("selectedPrivate", selectedPrivate);
-          unreadCounts[u.userName] = 0;
-          renderUserList(allUsers);
-          await loadPrivate(selectedPrivate);
+
+      async function loadPublic() {
+        clearChat();
+        try {
+          const res = await fetch("/messages/public");
+          const data = await res.json();
+          data.forEach((m) => appendMessage(m));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      async function loadPrivate(other) {
+        clearChat();
+        try {
+          const res = await fetch(`/messages/private/${me.userName}/${other}`);
+          const data = await res.json();
+          if (!data.length) {
+            const node = document.createElement("div");
+            node.className = "coming-soon";
+            node.textContent = "No messages yet — start the conversation.";
+            chatBox.appendChild(node);
+            return;
+          }
+          data.forEach((m) => appendMessage(m));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      async function onModeChange() {
+        clearChat();
+        if (mode === "public") {
+          await fetchUsers();
+          await loadPublic();
+        } else if (mode === "private") {
+          await fetchUsers();
+          if (selectedPrivate) await loadPrivate(selectedPrivate);
+        } else if (mode === "group") {
+          fetchUsers();
+          const el = document.createElement("div");
+          el.className = "coming-soon";
+          el.textContent = "Group functionality coming soon.";
+          chatBox.appendChild(el);
+        }
+      }
+
+      // send message
+      sendBtn.addEventListener("click", () => {
+        const txt = messageInput.value.trim();
+        if (!txt) return;
+        if (!me.userName) return alert("Login first");
+        const msgData = {
+          name: me.name,
+          email: me.email,
+          userName: me.userName,
+          message: txt,
+          time: new Date(),
+          chatType: mode,
         };
-        leftList.appendChild(it);
+        if (mode === "private") {
+          if (!selectedPrivate) return alert("Select user for private chat");
+          msgData.to = selectedPrivate;
+        }
+        socket.emit("chat msg", msgData);
+        appendMessage({ text: txt, by: me.userName, time: msgData.time });
+        messageInput.value = "";
       });
-    }
 
-    async function loadPublic() {
-      clearChat();
-      try { const res = await fetch("/messages/public"); const data = await res.json(); data.forEach(m => appendMessage(m)); }
-      catch (err) { console.error(err); }
-    }
-
-    async function loadPrivate(other) {
-      clearChat();
-      try {
-        const res = await fetch(`/messages/private/${me.userName}/${other}`);
-        const data = await res.json();
-        if (!data.length) {
-          const node = document.createElement("div"); node.className = "coming-soon"; node.textContent = "No messages yet — start the conversation."; chatBox.appendChild(node); return;
+      socket.on("receive_msg", (data) => {
+        if (!me.userName) return;
+        if (data.chatType === "public" || data.chatType === "group") {
+          appendMessage({
+            text: data.message,
+            by: data.userName,
+            time: data.time,
+          });
+        } else if (data.chatType === "private") {
+          const from = data.userName,
+            to = data.to;
+          if (
+            (from === me.userName && to === selectedPrivate) ||
+            (to === me.userName && from === selectedPrivate)
+          ) {
+            appendMessage({ text: data.message, by: from, time: data.time });
+          } else if (to === me.userName) {
+            unreadCounts[from] = (unreadCounts[from] || 0) + 1;
+            renderUserList(allUsers);
+          }
         }
-        data.forEach(m => appendMessage(m));
-      } catch (err) { console.error(err); }
-    }
-
-    async function onModeChange() {
-      clearChat();
-      if (mode === "public") { await fetchUsers(); await loadPublic(); }
-      else if (mode === "private") { await fetchUsers(); if (selectedPrivate) await loadPrivate(selectedPrivate); }
-      else if (mode === "group") { fetchUsers(); const el = document.createElement("div"); el.className = "coming-soon"; el.textContent = "Group functionality coming soon."; chatBox.appendChild(el); }
-    }
-
-    // send message
-    sendBtn.addEventListener("click", () => {
-      const txt = messageInput.value.trim();
-      if (!txt) return;
-      if (!me.userName) return alert("Login first");
-      const msgData = { name: me.name, email: me.email, userName: me.userName, message: txt, time: new Date(), chatType: mode };
-      if (mode === "private") { if (!selectedPrivate) return alert("Select user for private chat"); msgData.to = selectedPrivate; }
-      socket.emit("chat msg", msgData);
-      appendMessage({ text: txt, by: me.userName, time: msgData.time });
-      messageInput.value = "";
-    });
-
-    socket.on("receive_msg", (data) => {
-      if (!me.userName) return;
-      if (data.chatType === "public" || data.chatType === "group") {
-        appendMessage({ text: data.message, by: data.userName, time: data.time });
-      } else if (data.chatType === "private") {
-        const from = data.userName, to = data.to;
-        if ((from === me.userName && to === selectedPrivate) || (to === me.userName && from === selectedPrivate)) {
-          appendMessage({ text: data.message, by: from, time: data.time });
-        } else if (to === me.userName) {
-          unreadCounts[from] = (unreadCounts[from] || 0) + 1;
-          renderUserList(allUsers);
-        }
-      }
-    });
-
-  </script>
-</body>
+      });
+    </script>
+  </body>
 </html>

@@ -11,7 +11,24 @@ import Conversation from "./model/Conversation.js";
 import jwt from "jsonwebtoken";
 import { on } from "events";
 
+import multer from "multer";
+import cloudinary from "cloudinary";
+import streamifier from "streamifier";
+
 dotenv.config();
+
+// Configure Cloudinary
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Multer setup for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit (adjust as needed)
+});
 
 const app = express();
 app.use(cors());
@@ -62,7 +79,9 @@ app.post("/login", async (req, res) => {
     // ---------- LOGIN FLOW ----------
     if (exist) {
       if (!user) {
-        return res.status(404).json({ message: "User not found. Please sign up." });
+        return res
+          .status(404)
+          .json({ message: "User not found. Please sign up." });
       }
       const token = jwt.sign(
         { id: user._id, userName: user.userName },
@@ -74,11 +93,15 @@ app.post("/login", async (req, res) => {
 
     // ---------- SIGNUP FLOW ----------
     if (user) {
-      return res.status(400).json({ message: "Account already exists. Please login." });
+      return res
+        .status(400)
+        .json({ message: "Account already exists. Please login." });
     }
 
     if (!name || !email) {
-      return res.status(400).json({ message: "Name and Email required for signup." });
+      return res
+        .status(400)
+        .json({ message: "Name and Email required for signup." });
     }
 
     user = await User.create({ name, email, userName });
@@ -87,13 +110,16 @@ app.post("/login", async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-    return res.status(201).json({ message: "Account created successfully", token, user });
+    return res
+      .status(201)
+      .json({ message: "Account created successfully", token, user });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Error handling user", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Error handling user", error: err.message });
   }
 });
-
 
 // list users (basic info)
 app.get("/users", async (req, res) => {
@@ -106,6 +132,42 @@ app.get("/users", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error fetching users" });
+  }
+});
+
+//upload file with multer and cloudinary as well as send message
+app.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file provided" });
+
+    // req.file.buffer is available (multer memoryStorage)
+    const { buffer, originalname, mimetype } = req.file;
+    console.log("Received file:", originalname, mimetype, buffer.length);
+
+    // upload buffer to Cloudinary using upload_stream
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.v2.uploader.upload_stream(
+        { folder: "talksphere", resource_type: "auto" }, // resource_type auto allows images/pdf, etc.
+        (error, result) => (error ? reject(error) : resolve(result))
+      );
+      streamifier.createReadStream(buffer).pipe(stream);
+    });
+
+    // return useful metadata to client
+    res.json({
+      success: true,
+      file: {
+        url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
+        originalname,
+        mimetype,
+      },
+    });
+  } catch (err) {
+    console.error("upload err", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Upload failed", error: err.message });
   }
 });
 
@@ -177,7 +239,12 @@ app.get("/conversations/:userName", async (req, res) => {
 /* ---------- Socket handlers ---------- */
 
 io.on("connection", (socket) => {
-  console.log("New socket connected", socket.id, "Total users online:", onlineMap.size);
+  console.log(
+    "New socket connected",
+    socket.id,
+    "Total users online:",
+    onlineMap.size
+  );
 
   // client tells server who they are after connecting
   socket.on("identify", (payload) => {
@@ -188,15 +255,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  /*
-    chat msg payload:
-    {
-      name, email, userName,
-      chatType: 'public'|'private'|'group',
-      to? (userName),
-      message
-    }
-  */
   socket.on("chat msg", async (data) => {
     try {
       const {
@@ -205,9 +263,11 @@ io.on("connection", (socket) => {
         userName,
         chatType = "public",
         to = null,
-        message,
+        message = "",
+        file = null, // 👈 allow file
       } = data;
-      if (!userName || !message) return;
+
+      if (!userName || (!message && !file)) return; // must have text or file
 
       // ensure user exists
       await User.findOneAndUpdate(
@@ -219,34 +279,31 @@ io.on("connection", (socket) => {
       // build message object
       const msgObj = {
         text: message,
+        file: file ? { ...file } : null,
         by: userName,
-        to: to,
+        to,
         chatType,
         time: new Date(),
       };
 
       if (chatType === "public") {
-        // append to public conversation
         await Conversation.findOneAndUpdate(
           { type: "public" },
           { $push: { messages: msgObj } },
           { upsert: true, new: true }
         );
-        // broadcast
         socket.broadcast.emit("receive_msg", { ...data, time: msgObj.time });
       } else if (chatType === "private") {
-        // find or create conversation with participants [userName, to] (size 2)
         const participants = [userName, to].sort();
-        const conv = await Conversation.findOneAndUpdate(
-          { type: "private", participants: participants },
+        await Conversation.findOneAndUpdate(
+          { type: "private", participants },
           {
             $push: { messages: msgObj },
-            $setOnInsert: { type: "private", participants: participants },
+            $setOnInsert: { type: "private", participants },
           },
           { upsert: true, new: true }
         );
 
-        // emit to sender and recipient sockets if online
         const senderSocket = onlineMap.get(userName);
         const recipientSocket = onlineMap.get(to);
 
@@ -261,9 +318,8 @@ io.on("connection", (socket) => {
             time: msgObj.time,
           });
       } else if (chatType === "group") {
-        // store group message in a group conv (here basic placeholder)
-        const conv = await Conversation.findOneAndUpdate(
-          { type: "group", groupName: "default" }, // placeholder
+        await Conversation.findOneAndUpdate(
+          { type: "group", groupName: "default" },
           { $push: { messages: msgObj } },
           { upsert: true, new: true }
         );
