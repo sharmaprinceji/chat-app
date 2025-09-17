@@ -342,7 +342,7 @@
         <div class="input-row">
           <div class="input-wrapper">
             <span id="fileBtn">📎</span>
-            <input type="file" id="fileInput" style="display:none" />
+            <input type="file" id="fileInput" style="display: none" />
             <input
               id="messageInput"
               class="input"
@@ -428,20 +428,62 @@
       const emojiPicker = document.getElementById("emojiPicker");
 
       // file attachment button (non-functional placeholder)
-        const fileBtn = document.getElementById("fileBtn");
-        const fileInput = document.getElementById("fileInput");
+      const fileBtn = document.getElementById("fileBtn");
+      const fileInput = document.getElementById("fileInput");
+      let selectedFile = null;
 
-        fileBtn.addEventListener("click", () => {
-          fileInput.click();
-        });
+      fileBtn.addEventListener("click", () => {
+        fileInput.click();
+      });
 
-        fileInput.addEventListener("change", () => {
-          console.log("File input changed");
-          if (fileInput.files.length > 0) {
-            console.log("Selected file:", fileInput.files[0]);
-            alert("File selected: " + fileInput.files[0].name);
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files.length > 0) {
+          selectedFile = fileInput.files[0];
+
+          // show preview in chatBox footer or above input
+          const previewId = "file-preview";
+          let existing = document.getElementById(previewId);
+          if (existing) existing.remove();
+
+          const preview = document.createElement("div");
+          preview.id = previewId;
+          preview.style.margin = "6px 0";
+          preview.style.fontSize = "13px";
+          preview.style.color = "gray";
+          preview.style.display = "flex";
+          preview.style.alignItems = "center";
+          preview.style.gap = "6px";
+
+          // small thumbnail if image
+          if (selectedFile.type.startsWith("image/")) {
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(selectedFile);
+            img.style.width = "40px";
+            img.style.height = "40px";
+            img.style.borderRadius = "6px";
+            preview.appendChild(img);
           }
-        });
+
+          const nameSpan = document.createElement("span");
+          nameSpan.textContent = selectedFile.name;
+          preview.appendChild(nameSpan);
+
+          // cancel button
+          const cancelBtn = document.createElement("button");
+          cancelBtn.textContent = "✖";
+          cancelBtn.style.border = "none";
+          cancelBtn.style.background = "transparent";
+          cancelBtn.style.cursor = "pointer";
+          cancelBtn.onclick = () => {
+            selectedFile = null;
+            preview.remove();
+            fileInput.value = ""; // reset input
+          };
+          preview.appendChild(cancelBtn);
+
+          document.querySelector(".chat-area").appendChild(preview);
+        }
+      });
 
       // ========== state ==========
       let token = localStorage.getItem("token") || null;
@@ -662,11 +704,26 @@
       function appendMessage(m) {
         const el = document.createElement("div");
         el.className = "message " + (m.by === me.userName ? "me" : "other");
-        el.innerHTML = `<div><strong>${
+
+        let inner = `<div><strong>${
           m.by === me.userName ? "You" : m.by
-        }</strong></div>
-<div>${m.text}</div>
-<div class="meta">${timeHM(m.time)}</div>`;
+        }</strong></div>`;
+
+        if (m.text) {
+          inner += `<div>${m.text}</div>`;
+        }
+
+        if (m.file) {
+          if (m.file.mimetype.startsWith("image/")) {
+            inner += `<div><img src="${m.file.url}" style="max-width:180px;border-radius:6px;margin-top:6px"/></div>`;
+          } else {
+            inner += `<div><a href="${m.file.url}" target="_blank">${m.file.originalname}</a></div>`;
+          }
+        }
+
+        inner += `<div class="meta">${timeHM(m.time)}</div>`;
+
+        el.innerHTML = inner;
         chatBox.appendChild(el);
         chatBox.scrollTop = chatBox.scrollHeight;
       }
@@ -770,15 +827,43 @@
       }
 
       // send message
-      sendBtn.addEventListener("click", () => {
+      sendBtn.addEventListener("click", async () => {
         const txt = messageInput.value.trim();
-        if (!txt) return;
+
+        // case: no text & no file → ignore
+        if (!txt && !selectedFile) return;
+
         if (!me.userName) return alert("Login first");
+
+        let fileData = null;
+
+        // if file exists → upload to server first
+        if (selectedFile) {
+          const formData = new FormData();
+          formData.append("file", selectedFile);
+
+          try {
+            const res = await fetch("/upload", {
+              method: "POST",
+              body: formData,
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error("Upload failed");
+
+            fileData = data.file; // contains {url, public_id, originalname, mimetype}
+          } catch (err) {
+            console.error("File upload failed:", err);
+            return alert("File upload failed");
+          }
+        }
+
+        // now prepare message data
         const msgData = {
           name: me.name,
           email: me.email,
           userName: me.userName,
-          message: txt,
+          message: txt || null,
+          file: fileData || null,
           time: new Date(),
           chatType: mode,
         };
@@ -786,27 +871,52 @@
           if (!selectedPrivate) return alert("Select user for private chat");
           msgData.to = selectedPrivate;
         }
+
         socket.emit("chat msg", msgData);
-        appendMessage({ text: txt, by: me.userName, time: msgData.time });
+
+        // append message in UI
+        appendMessage({
+          text: msgData.message,
+          file: msgData.file,
+          by: me.userName,
+          time: msgData.time,
+        });
+
+        // reset inputs
         messageInput.value = "";
+        selectedFile = null;
+        const preview = document.getElementById("file-preview");
+        if (preview) preview.remove();
+        fileInput.value = "";
       });
 
       socket.on("receive_msg", (data) => {
         if (!me.userName) return;
+
+        // If the message is from me, skip (already appended locally on send)
+        if (data.userName === me.userName) return;
+
         if (data.chatType === "public" || data.chatType === "group") {
           appendMessage({
             text: data.message,
+            file: data.file || null, // ✅ include file from server
             by: data.userName,
             time: data.time,
           });
         } else if (data.chatType === "private") {
           const from = data.userName,
             to = data.to;
+
           if (
             (from === me.userName && to === selectedPrivate) ||
             (to === me.userName && from === selectedPrivate)
           ) {
-            appendMessage({ text: data.message, by: from, time: data.time });
+            appendMessage({
+              text: data.message,
+              file: data.file || null, // ✅ include file
+              by: from,
+              time: data.time,
+            });
           } else if (to === me.userName) {
             unreadCounts[from] = (unreadCounts[from] || 0) + 1;
             renderUserList(allUsers);
