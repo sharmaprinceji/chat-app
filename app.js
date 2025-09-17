@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import User from "./model/User.js";
 import Conversation from "./model/Conversation.js";
 import jwt from "jsonwebtoken";
+import { on } from "events";
 
 dotenv.config();
 
@@ -176,7 +177,7 @@ app.get("/conversations/:userName", async (req, res) => {
 /* ---------- Socket handlers ---------- */
 
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+  console.log("New socket connected", socket.id, "Total users online:", onlineMap.size);
 
   // client tells server who they are after connecting
   socket.on("identify", (payload) => {
