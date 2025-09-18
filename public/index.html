@@ -21,6 +21,36 @@
         margin: 0;
       }
 
+      /* ========== Responsive Logo ========== */
+      .header h1 {
+        font-size: clamp(20px, 5vw, 28px); /* shrink with screen */
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--accent);
+      }
+
+      .header h1 span.logo {
+        font-size: clamp(22px, 6vw, 32px); /* logo emoji adjusts too */
+      }
+
+      /* ========== Mobile mode adjustments ========== */
+      @media (max-width: 600px) {
+        .app {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .left-panel,
+        .chat-area {
+          width: 100%;
+        }
+
+        /* By default hide chat-area when in private/group until user selected */
+        .chat-area.hidden {
+          display: none;
+        }
+      }
+
       /* ======== HEADER ======== */
       .header {
         display: flex;
@@ -32,9 +62,7 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
         position: relative;
       }
-      .header h1 {
-        color: var(--accent);
-      }
+
       #current-user {
         position: relative;
         cursor: pointer;
@@ -73,6 +101,9 @@
       }
 
       /*========== chat box and input row ==========*/
+      #chatTitle {
+        display: none; /* by default hide */
+      }
 
       .chat-area {
         width: 640px;
@@ -112,19 +143,15 @@
       }
 
       .input {
-        padding-left: 38px;
-        padding-right: 38px;
-        text-align: center;
-      }
-
-      .input {
         width: 100%;
         padding: 12px;
         border-radius: 20px;
         border: 1px solid #ddd;
         font-size: 14px;
         box-sizing: border-box;
+        text-align: center;
       }
+
       .btn {
         padding: 10px 16px;
         border-radius: 20px;
@@ -195,6 +222,62 @@
         margin-left: 6px;
       }
 
+      /*======== CHAT BOX ========*/
+
+      .chat-header {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 10;
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+
+      .back-btn {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: var(--accent);
+      }
+
+      /* Mobile: show back button */
+      @media (max-width: 600px) {
+        .back-btn {
+          display: flex;
+        }
+        .chat-header {
+          display: flex;
+        }
+      }
+
+      /* Make only messages scroll */
+      .chat-area {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      /* .chat-box {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+      } */
+
+      .input-row {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        padding: 8px;
+        border-top: 1px solid #ddd;
+        z-index: 10;
+      }
+
       .chat-box {
         background: #fff;
         border-radius: 8px;
@@ -245,6 +328,35 @@
         font-size: 12px;
         color: gray;
         margin-top: 6px;
+      }
+
+      /* Fullscreen image modal */
+      .img-modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        justify-content: center;
+        align-items: center;
+      }
+
+      .img-modal img {
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 8px;
+      }
+
+      .img-modal span {
+        position: absolute;
+        top: 20px;
+        right: 35px;
+        font-size: 40px;
+        color: white;
+        cursor: pointer;
       }
 
       .coming-soon {
@@ -330,23 +442,28 @@
             >
           </div>
         </div>
-        <div class="card">
+
+        <div class="card" id="usersCard" style="margin-top: 10px;">
           <div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
           <div class="user-list" id="leftList"></div>
         </div>
       </div>
 
       <div class="chat-area">
+        <div class="chat-header">
+          <button id="backBtn" class="back-btn"> ← Go Back</button>
+        </div>
+
         <div class="card chat-box" id="chatBox"></div>
 
-        <div class="input-row">
+        <div class="input-row" style="display: none;">
           <div class="input-wrapper">
             <span id="fileBtn">📎</span>
             <input type="file" id="fileInput" style="display: none" />
             <input
               id="messageInput"
               class="input"
-              placeholder="Enter your message..."
+              placeholder="message..."
             />
             <span id="emojiBtn">😊</span>
             <!-- initially hidden -->
@@ -354,6 +471,12 @@
           </div>
           <button id="sendBtn" class="btn">Send</button>
         </div>
+      </div>
+
+      <!-- Fullscreen image preview modal -->
+      <div id="imgModal" class="img-modal">
+        <span id="closeModal">&times;</span>
+        <img id="modalImg" />
       </div>
     </div>
 
@@ -423,6 +546,10 @@
       const chatBox = document.getElementById("chatBox");
       const messageInput = document.getElementById("messageInput");
       const sendBtn = document.getElementById("sendBtn");
+      const inputRow = document.querySelector(".input-row");
+      const chatHeader=document.querySelector(".chat-header");
+      const userCard=document.getElementById("usersCard");
+      // const modesBtns = document.querySelectorAll('input[name="mode"]');
 
       const emojiBtn = document.getElementById("emojiBtn");
       const emojiPicker = document.getElementById("emojiPicker");
@@ -498,6 +625,7 @@
         loginForm.style.display = "block";
         signupForm.style.display = "none";
       };
+
       showSignup.onclick = () => {
         loginForm.style.display = "none";
         signupForm.style.display = "block";
@@ -532,6 +660,7 @@
           usernameSpan.textContent = me.name;
           socket.emit("identify", { userName: me.userName });
           await onModeChange();
+          inputRow.style.display = "flex";
         } catch (err) {
           console.error(err);
           alert("Signup failed");
@@ -559,6 +688,7 @@
           usernameSpan.textContent = me.name;
           socket.emit("identify", { userName: me.userName });
           await onModeChange();
+          inputRow.style.display = "flex";
         } catch (err) {
           console.error(err);
           alert("Login failed");
@@ -583,6 +713,15 @@
           if (sselected) selectedPrivate = sselected;
           socket.emit("identify", { userName: me.userName });
           await onModeChange();
+          inputRow.style.display = "flex";
+          if(mode==="public"){
+            chatHeader.style.display="none";
+            userCard.style.display="none";
+          }
+          else{
+            chatHeader.style.display="flex";
+            userCard.style.display="block";
+          }
         } else {
           if (smode) {
             mode = smode;
@@ -617,6 +756,14 @@
           selectedPrivate = null;
           localStorage.removeItem("selectedPrivate");
           await onModeChange();
+          if(mode==="public"){
+            chatHeader.style.display="none";
+            userCard.style.display="none";
+          }
+          else{
+            chatHeader.style.display="flex";
+            userCard.style.display="block";
+          }
         });
       });
 
@@ -739,18 +886,75 @@
         }
       }
 
+      // previous version of renderUserList (commented out)
+      // function renderUserList(users) {
+      //   leftList.innerHTML = "";
+      //   if (mode === "public") {
+      //     leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
+      //     return;
+      //   }
+      //   if (mode === "group") {
+      //     ["QA Team", "Ops", "Managers"].forEach((g) => {
+      //       const it = document.createElement("div");
+      //       it.className = "user-item";
+      //       it.textContent = g;
+      //       it.onclick = () => {
+      //         clearChat();
+      //         const el = document.createElement("div");
+      //         el.className = "coming-soon";
+      //         el.textContent = "Group chat coming soon.";
+      //         chatBox.appendChild(el);
+      //       };
+      //       leftList.appendChild(it);
+      //     });
+      //     return;
+      //   }
+      //   users.forEach((u) => {
+      //     if (u.userName === me.userName) return;
+      //     const it = document.createElement("div");
+      //     it.className = "user-item";
+      //     let badge = "";
+      //     if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0)
+      //       badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
+      //     it.innerHTML = `<div>${u.name}<div style="font-size:11px;color:gray">@${u.userName}</div></div>${badge}`;
+      //     it.onclick = async () => {
+      //       selectedPrivate = u.userName;
+      //       localStorage.setItem("selectedPrivate", selectedPrivate);
+      //       unreadCounts[u.userName] = 0;
+      //       renderUserList(allUsers);
+      //       await loadPrivate(selectedPrivate);
+      //     };
+      //     leftList.appendChild(it);
+      //   });
+      // }
+
+      // updated version of renderUserList with improved logic
       function renderUserList(users) {
         leftList.innerHTML = "";
+
+        // hide list in public mode
         if (mode === "public") {
-          leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
+          leftList.style.display = "none";
           return;
+        } else {
+          leftList.style.display = "block";
         }
+
         if (mode === "group") {
           ["QA Team", "Ops", "Managers"].forEach((g) => {
             const it = document.createElement("div");
             it.className = "user-item";
             it.textContent = g;
             it.onclick = () => {
+              selectedPrivate = g; // simulate group selection
+              localStorage.setItem("selectedPrivate", selectedPrivate);
+
+              // in phone view, show chat and hide list
+              if (window.innerWidth <= 600) {
+                document.querySelector(".chat-area").classList.remove("hidden");
+                document.querySelector(".left-panel").style.display = "none";
+              }
+
               clearChat();
               const el = document.createElement("div");
               el.className = "coming-soon";
@@ -761,6 +965,7 @@
           });
           return;
         }
+
         users.forEach((u) => {
           if (u.userName === me.userName) return;
           const it = document.createElement("div");
@@ -775,6 +980,12 @@
             unreadCounts[u.userName] = 0;
             renderUserList(allUsers);
             await loadPrivate(selectedPrivate);
+
+            // in phone view, show chat and hide list
+            if (window.innerWidth <= 600) {
+              document.querySelector(".chat-area").classList.remove("hidden");
+              document.querySelector(".left-panel").style.display = "none";
+            }
           };
           leftList.appendChild(it);
         });
@@ -809,16 +1020,51 @@
         }
       }
 
+      // async function onModeChange() {
+      //   clearChat();
+      //   if (mode === "public") {
+      //     await fetchUsers();
+      //     await loadPublic();
+      //   } else if (mode === "private") {
+      //     await fetchUsers();
+      //     if (selectedPrivate) await loadPrivate(selectedPrivate);
+      //   } else if (mode === "group") {
+      //     fetchUsers();
+      //     const el = document.createElement("div");
+      //     el.className = "coming-soon";
+      //     el.textContent = "Group functionality coming soon.";
+      //     chatBox.appendChild(el);
+      //   }
+      // }
+
+      // updated version of onModeChange with improved logic
+      // When switching mode, adjust view for mobile
       async function onModeChange() {
         clearChat();
+
+        // reset phone responsive UI
+        document.querySelector(".chat-area").classList.remove("hidden");
+        document.querySelector(".left-panel").style.display = "block";
+
         if (mode === "public") {
           await fetchUsers();
           await loadPublic();
         } else if (mode === "private") {
           await fetchUsers();
+
+          if (window.innerWidth <= 600 && !selectedPrivate) {
+            // hide chat until user picks someone
+            document.querySelector(".chat-area").classList.add("hidden");
+          }
+
           if (selectedPrivate) await loadPrivate(selectedPrivate);
         } else if (mode === "group") {
           fetchUsers();
+
+          if (window.innerWidth <= 600 && !selectedPrivate) {
+            document.querySelector(".chat-area").classList.add("hidden");
+          }
+
           const el = document.createElement("div");
           el.className = "coming-soon";
           el.textContent = "Group functionality coming soon.";
@@ -921,6 +1167,58 @@
             unreadCounts[from] = (unreadCounts[from] || 0) + 1;
             renderUserList(allUsers);
           }
+        }
+      });
+
+      // Show user list updates and toggle to back to user list on mobile
+      const backBtn = document.getElementById("backBtn");
+      const chatTitle = document.getElementById("chatTitle");
+
+      function openChat(userOrGroup) {
+        selectedPrivate = userOrGroup;
+        localStorage.setItem("selectedPrivate", selectedPrivate);
+
+        // Hide list, show chat
+        if (window.innerWidth <= 600) {
+          document.querySelector(".chat-area").classList.remove("hidden");
+          document.querySelector(".left-panel").style.display = "none";
+        }
+
+        chatTitle.textContent = userOrGroup; // show name at top
+        clearChat();
+        loadPrivate(userOrGroup); // or group
+      }
+
+      backBtn.addEventListener("click", () => {
+        if (window.innerWidth <= 600) {
+          document.querySelector(".chat-area").classList.add("hidden");
+          document.querySelector(".left-panel").style.display = "block";
+        }
+      });
+
+      // ========== image modal logic ==========
+      // Image modal preview
+      const imgModal = document.getElementById("imgModal");
+      const modalImg = document.getElementById("modalImg");
+      const closeModal = document.getElementById("closeModal");
+
+      // Event delegation: listen for clicks on chatBox images
+      chatBox.addEventListener("click", (e) => {
+        if (e.target.tagName === "IMG" && e.target.closest(".message")) {
+          modalImg.src = e.target.src;
+          imgModal.style.display = "flex";
+        }
+      });
+
+      // Close modal on X click
+      closeModal.addEventListener("click", () => {
+        imgModal.style.display = "none";
+      });
+
+      // Close modal on background click
+      imgModal.addEventListener("click", (e) => {
+        if (e.target === imgModal) {
+          imgModal.style.display = "none";
         }
       });
     </script>
