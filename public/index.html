@@ -394,6 +394,35 @@
         margin-top: 12px;
       }
 
+      /* Delete button styling for each message */
+      .message {
+        position: relative; /* anchor for absolute delete button */
+      }
+
+      .delete-small {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        display: none;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid #eee;
+        background: #fff;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        padding: 0;
+      }
+
+      /* when toggled on (after dblclick) show delete button */
+      .message.show-delete .delete-small {
+        display: flex;
+      }
+
       @media (max-width: 900px) {
         .app {
           flex-direction: column;
@@ -443,7 +472,7 @@
           </div>
         </div>
 
-        <div class="card" id="usersCard" style="margin-top: 10px;">
+        <div class="card" id="usersCard" style="margin-top: 10px">
           <div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
           <div class="user-list" id="leftList"></div>
         </div>
@@ -451,20 +480,16 @@
 
       <div class="chat-area">
         <div class="chat-header">
-          <button id="backBtn" class="back-btn"> ← Go Back</button>
+          <button id="backBtn" class="back-btn">← Go Back</button>
         </div>
 
         <div class="card chat-box" id="chatBox"></div>
 
-        <div class="input-row" style="display: none;">
+        <div class="input-row" style="display: none">
           <div class="input-wrapper">
             <span id="fileBtn">📎</span>
             <input type="file" id="fileInput" style="display: none" />
-            <input
-              id="messageInput"
-              class="input"
-              placeholder="message..."
-            />
+            <input id="messageInput" class="input" placeholder="message..." />
             <span id="emojiBtn">😊</span>
             <!-- initially hidden -->
             <emoji-picker id="emojiPicker" style="display: none"></emoji-picker>
@@ -547,8 +572,8 @@
       const messageInput = document.getElementById("messageInput");
       const sendBtn = document.getElementById("sendBtn");
       const inputRow = document.querySelector(".input-row");
-      const chatHeader=document.querySelector(".chat-header");
-      const userCard=document.getElementById("usersCard");
+      const chatHeader = document.querySelector(".chat-header");
+      const userCard = document.getElementById("usersCard");
       // const modesBtns = document.querySelectorAll('input[name="mode"]');
 
       const emojiBtn = document.getElementById("emojiBtn");
@@ -714,13 +739,12 @@
           socket.emit("identify", { userName: me.userName });
           await onModeChange();
           inputRow.style.display = "flex";
-          if(mode==="public"){
-            chatHeader.style.display="none";
-            userCard.style.display="none";
-          }
-          else{
-            chatHeader.style.display="flex";
-            userCard.style.display="block";
+          if (mode === "public") {
+            chatHeader.style.display = "none";
+            userCard.style.display = "none";
+          } else {
+            chatHeader.style.display = "flex";
+            userCard.style.display = "block";
           }
         } else {
           if (smode) {
@@ -756,13 +780,12 @@
           selectedPrivate = null;
           localStorage.removeItem("selectedPrivate");
           await onModeChange();
-          if(mode==="public"){
-            chatHeader.style.display="none";
-            userCard.style.display="none";
-          }
-          else{
-            chatHeader.style.display="flex";
-            userCard.style.display="block";
+          if (mode === "public") {
+            chatHeader.style.display = "none";
+            userCard.style.display = "none";
+          } else {
+            chatHeader.style.display = "flex";
+            userCard.style.display = "block";
           }
         });
       });
@@ -848,31 +871,116 @@
         });
       }
 
+      // REPLACE existing appendMessage with this (returns the element)
       function appendMessage(m) {
         const el = document.createElement("div");
         el.className = "message " + (m.by === me.userName ? "me" : "other");
+        // store server id if present
+        if (m._id) el.dataset.msgId = m._id;
+        else if (m.id) el.dataset.msgId = m.id;
 
+        // store client-side temp id if present (used to patch local messages after server ack)
+        if (m.clientTempId) el.dataset.tempId = m.clientTempId;
+
+        // build inner HTML
         let inner = `<div><strong>${
           m.by === me.userName ? "You" : m.by
         }</strong></div>`;
 
-        if (m.text) {
-          inner += `<div>${m.text}</div>`;
-        }
+        //  if (m.text) inner += `<div>${m.text}</div>`;
+        // inner += `<div class="meta">${timeHM(m.time)}</div>`;
+        // el.innerHTML = inner;
 
+        if (m.text) {
+          // escape HTML minimally to avoid injection (simple)
+          const escaped = String(m.text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          inner += `<div>${escaped}</div>`;
+        }
+        
         if (m.file) {
-          if (m.file.mimetype.startsWith("image/")) {
+          if (m.file.mimetype && m.file.mimetype.startsWith("image/")) {
             inner += `<div><img src="${m.file.url}" style="max-width:180px;border-radius:6px;margin-top:6px"/></div>`;
           } else {
-            inner += `<div><a href="${m.file.url}" target="_blank">${m.file.originalname}</a></div>`;
+            inner += `<div><a href="${m.file.url}" target="_blank">${
+              m.file.originalname || "file"
+            }</a></div>`;
           }
         }
 
         inner += `<div class="meta">${timeHM(m.time)}</div>`;
 
         el.innerHTML = inner;
+
+        // Who can delete? (message author or admin)
+        const canDelete =
+          (me && me.userName && m.by === me.userName) ||
+          (me && me.role === "admin");
+
+        if (canDelete) {
+          // create small delete button (hidden by default)
+          const delBtn = document.createElement("button");
+          delBtn.className = "delete-small";
+          delBtn.title = "Delete message";
+          delBtn.type = "button";
+          delBtn.innerHTML = "🗑";
+
+          // delete click handler
+          delBtn.addEventListener("click", async (ev) => {
+            ev.stopPropagation();
+            const id = el.dataset.msgId;
+            if (!id) {
+              return alert("Cannot delete: message id not available yet.");
+            }
+            if (!token) {
+              return alert("Login required to delete messages");
+            }
+
+            // UI feedback
+            delBtn.disabled = true;
+            const prev = delBtn.innerHTML;
+            delBtn.innerHTML = "…";
+
+            try {
+              const res = await fetch(`/messages/${id}`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: "Bearer " + token, // 🔑 token भेजना ज़रूरी
+                  "Content-Type": "application/json",
+                },
+              });
+
+              const data = await res.json();
+              console.log("delete response", data);
+              if (!res.ok) throw new Error(data.message || "Delete failed");
+
+              // remove locally (server will broadcast too)
+              el.remove();
+            } catch (err) {
+              console.error("delete error", err);
+              alert("Delete failed: " + (err.message || "unknown"));
+              delBtn.disabled = false;
+              delBtn.innerHTML = prev;
+            }
+          });
+
+          el.appendChild(delBtn);
+
+          // dblclick toggles the delete button visibility
+          el.addEventListener("dblclick", (e) => {
+            e.stopPropagation();
+            // toggle show-delete class
+            el.classList.toggle("show-delete");
+            // optional: auto-hide after 4 seconds
+            setTimeout(() => el.classList.remove("show-delete"), 5000);
+          });
+        }
+
         chatBox.appendChild(el);
         chatBox.scrollTop = chatBox.scrollHeight;
+        return el;
       }
 
       async function fetchUsers() {
@@ -1103,7 +1211,7 @@
           }
         }
 
-        // now prepare message data
+        // prepare message data
         const msgData = {
           name: me.name,
           email: me.email,
@@ -1118,15 +1226,24 @@
           msgData.to = selectedPrivate;
         }
 
+        // client-generated temp id to patch local element after server ack
+        const clientTempId =
+          "temp_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+        msgData.clientTempId = clientTempId;
+
+        // emit to server
         socket.emit("chat msg", msgData);
 
-        // append message in UI
-        appendMessage({
+        // append message locally and tag it with temp id
+        const el = appendMessage({
           text: msgData.message,
           file: msgData.file,
           by: me.userName,
           time: msgData.time,
+          clientTempId: clientTempId,
         });
+
+        if (el) el.dataset.tempId = clientTempId;
 
         // reset inputs
         messageInput.value = "";
@@ -1139,32 +1256,83 @@
       socket.on("receive_msg", (data) => {
         if (!me.userName) return;
 
-        // If the message is from me, skip (already appended locally on send)
-        if (data.userName === me.userName) return;
+        const from = data.userName;
+        const chatType = data.chatType;
 
-        if (data.chatType === "public" || data.chatType === "group") {
+        // helper to safely append msg
+        function safeAppend(payload) {
           appendMessage({
-            text: data.message,
-            file: data.file || null, // ✅ include file from server
-            by: data.userName,
-            time: data.time,
+            text: payload.message,
+            file: payload.file || null,
+            by: payload.userName || payload.by,
+            time: payload.time,
+            _id: payload._id || payload.id,
+            clientTempId: payload.clientTempId,
           });
-        } else if (data.chatType === "private") {
-          const from = data.userName,
-            to = data.to;
+        }
 
+        // PUBLIC / GROUP message
+        if (chatType === "public" || chatType === "group") {
+          // if this is an ack for our own message (server returned saved msg with clientTempId)
+          if (from === me.userName && data.clientTempId) {
+            const local = document.querySelector(
+              `.message[data-temp-id="${data.clientTempId}"]`
+            );
+            if (local) {
+              // set real server id so delete will work
+              if (data._id) local.dataset.msgId = data._id;
+              else if (data.id) local.dataset.msgId = data.id;
+
+              // update time (if server normalized it)
+              const meta = local.querySelector(".meta");
+              if (meta) meta.textContent = timeHM(data.time);
+              return; // done; don't duplicate
+            }
+          }
+
+          // otherwise append for others
+          if (from !== me.userName) {
+            safeAppend(data);
+          } else {
+            // if from me but no clientTempId & no local match → append to keep consistent
+            safeAppend(data);
+          }
+          return;
+        }
+
+        // PRIVATE message
+        if (chatType === "private") {
+          const fromUser = data.userName;
+          const toUser = data.to;
+
+          // if this is related to currently open private chat
           if (
-            (from === me.userName && to === selectedPrivate) ||
-            (to === me.userName && from === selectedPrivate)
+            (fromUser === me.userName && toUser === selectedPrivate) ||
+            (toUser === me.userName && fromUser === selectedPrivate)
           ) {
-            appendMessage({
-              text: data.message,
-              file: data.file || null, // ✅ include file
-              by: from,
-              time: data.time,
-            });
-          } else if (to === me.userName) {
-            unreadCounts[from] = (unreadCounts[from] || 0) + 1;
+            // handle our own message ack via clientTempId
+            if (fromUser === me.userName && data.clientTempId) {
+              const local = document.querySelector(
+                `.message[data-temp-id="${data.clientTempId}"]`
+              );
+              if (local) {
+                if (data._id) local.dataset.msgId = data._id;
+                else if (data.id) local.dataset.msgId = data.id;
+                const meta = local.querySelector(".meta");
+                if (meta) meta.textContent = timeHM(data.time);
+                return;
+              }
+            }
+
+            // append message for matched private chat
+            safeAppend(data);
+            return;
+          }
+
+          // incoming private message to me but not current open user → unread
+          if (toUser === me.userName) {
+            const fromWho = fromUser;
+            unreadCounts[fromWho] = (unreadCounts[fromWho] || 0) + 1;
             renderUserList(allUsers);
           }
         }
@@ -1219,6 +1387,18 @@
       imgModal.addEventListener("click", (e) => {
         if (e.target === imgModal) {
           imgModal.style.display = "none";
+        }
+      });
+
+      //---------delete chat history on double click of header ---------//
+      socket.on("messageDeleted", ({ id }) => {
+        // support both .message and .msg selectors (compatibility)
+        const msgDiv =
+          document.querySelector(`.message[data-msg-id="${id}"]`) ||
+          document.querySelector(`.msg[data-id="${id}"]`);
+
+        if (msgDiv) {
+          msgDiv.remove();
         }
       });
     </script>

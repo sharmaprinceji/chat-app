@@ -101,6 +101,9 @@
       }
 
       /*========== chat box and input row ==========*/
+      #chatTitle {
+        display: none; /* by default hide */
+      }
 
       .chat-area {
         width: 640px;
@@ -139,12 +142,6 @@
         user-select: none;
       }
 
-      /* .input {
-        padding-left: 38px;
-        padding-right: 38px;
-        
-      } */
-
       .input {
         width: 100%;
         padding: 12px;
@@ -154,6 +151,7 @@
         box-sizing: border-box;
         text-align: center;
       }
+
       .btn {
         padding: 10px 16px;
         border-radius: 20px;
@@ -233,9 +231,10 @@
         z-index: 10;
         padding: 8px;
         border-bottom: 1px solid #ddd;
-        display: flex;
+        display: none;
         align-items: center;
         gap: 8px;
+        cursor: pointer;
       }
 
       .back-btn {
@@ -244,12 +243,16 @@
         border: none;
         font-size: 20px;
         cursor: pointer;
+        color: var(--accent);
       }
 
       /* Mobile: show back button */
       @media (max-width: 600px) {
         .back-btn {
-          display: block;
+          display: flex;
+        }
+        .chat-header {
+          display: flex;
         }
       }
 
@@ -440,7 +443,7 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="usersCard" style="margin-top: 10px;">
           <div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
           <div class="user-list" id="leftList"></div>
         </div>
@@ -448,20 +451,19 @@
 
       <div class="chat-area">
         <div class="chat-header">
-          <button id="backBtn" class="back-btn">←</button>
-          <h2 id="chatTitle">TalkSphere</h2>
+          <button id="backBtn" class="back-btn"> ← Go Back</button>
         </div>
 
         <div class="card chat-box" id="chatBox"></div>
 
-        <div class="input-row">
+        <div class="input-row" style="display: none;">
           <div class="input-wrapper">
             <span id="fileBtn">📎</span>
             <input type="file" id="fileInput" style="display: none" />
             <input
               id="messageInput"
               class="input"
-              placeholder="Enter your message..."
+              placeholder="message..."
             />
             <span id="emojiBtn">😊</span>
             <!-- initially hidden -->
@@ -544,6 +546,10 @@
       const chatBox = document.getElementById("chatBox");
       const messageInput = document.getElementById("messageInput");
       const sendBtn = document.getElementById("sendBtn");
+      const inputRow = document.querySelector(".input-row");
+      const chatHeader=document.querySelector(".chat-header");
+      const userCard=document.getElementById("usersCard");
+      // const modesBtns = document.querySelectorAll('input[name="mode"]');
 
       const emojiBtn = document.getElementById("emojiBtn");
       const emojiPicker = document.getElementById("emojiPicker");
@@ -619,6 +625,7 @@
         loginForm.style.display = "block";
         signupForm.style.display = "none";
       };
+
       showSignup.onclick = () => {
         loginForm.style.display = "none";
         signupForm.style.display = "block";
@@ -653,6 +660,7 @@
           usernameSpan.textContent = me.name;
           socket.emit("identify", { userName: me.userName });
           await onModeChange();
+          inputRow.style.display = "flex";
         } catch (err) {
           console.error(err);
           alert("Signup failed");
@@ -680,6 +688,7 @@
           usernameSpan.textContent = me.name;
           socket.emit("identify", { userName: me.userName });
           await onModeChange();
+          inputRow.style.display = "flex";
         } catch (err) {
           console.error(err);
           alert("Login failed");
@@ -704,6 +713,15 @@
           if (sselected) selectedPrivate = sselected;
           socket.emit("identify", { userName: me.userName });
           await onModeChange();
+          inputRow.style.display = "flex";
+          if(mode==="public"){
+            chatHeader.style.display="none";
+            userCard.style.display="none";
+          }
+          else{
+            chatHeader.style.display="flex";
+            userCard.style.display="block";
+          }
         } else {
           if (smode) {
             mode = smode;
@@ -738,6 +756,14 @@
           selectedPrivate = null;
           localStorage.removeItem("selectedPrivate");
           await onModeChange();
+          if(mode==="public"){
+            chatHeader.style.display="none";
+            userCard.style.display="none";
+          }
+          else{
+            chatHeader.style.display="flex";
+            userCard.style.display="block";
+          }
         });
       });
 
