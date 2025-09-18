@@ -82,6 +82,7 @@ function authMiddleware(req, res, next) {
   }
 }
 
+
 // create or login user
 app.post("/login", async (req, res) => {
   try {
@@ -285,7 +286,7 @@ app.delete("/messages/:id", authMiddleware, async (req, res) => {
     const { id } = req.params;
     const { userName, role } = req.user;
     console.log("Delete request for msg id:", id, "by", userName);
-    
+
     const query =
       role === "admin"
         ? { "messages._id": id }
@@ -309,6 +310,43 @@ app.delete("/messages/:id", authMiddleware, async (req, res) => {
     res
       .status(500)
       .json({ message: "Error deleting message", err: err.message });
+  }
+});
+
+//HARD DELETE private message
+app.delete("/messages/private/:id", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userName, role } = req.user;
+
+    // private conversation jisme message ho
+    const conv = await Conversation.findOne({
+      type: "private",
+      "messages._id": id,
+    });
+    if (!conv) return res.status(404).json({ message: "Message not found" });
+
+    const msg = conv.messages.id(id);
+
+    // only author or admin can delete
+    if (msg.by !== userName && role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Not allowed to delete this message" });
+    }
+
+    // 🗑️ Hard delete: remove from array
+    msg.deleteOne();
+
+    await conv.save();
+
+    // notify only participants
+    io.to(conv.participants).emit("messageDeleted", { id });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("delete private error:", err);
+    res.status(500).json({ message: "Delete failed", error: err.message });
   }
 });
 

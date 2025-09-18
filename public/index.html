@@ -875,6 +875,7 @@
       function appendMessage(m) {
         const el = document.createElement("div");
         el.className = "message " + (m.by === me.userName ? "me" : "other");
+
         // store server id if present
         if (m._id) el.dataset.msgId = m._id;
         else if (m.id) el.dataset.msgId = m.id;
@@ -887,10 +888,6 @@
           m.by === me.userName ? "You" : m.by
         }</strong></div>`;
 
-        //  if (m.text) inner += `<div>${m.text}</div>`;
-        // inner += `<div class="meta">${timeHM(m.time)}</div>`;
-        // el.innerHTML = inner;
-
         if (m.text) {
           // escape HTML minimally to avoid injection (simple)
           const escaped = String(m.text)
@@ -899,7 +896,7 @@
             .replace(/>/g, "&gt;");
           inner += `<div>${escaped}</div>`;
         }
-        
+
         if (m.file) {
           if (m.file.mimetype && m.file.mimetype.startsWith("image/")) {
             inner += `<div><img src="${m.file.url}" style="max-width:180px;border-radius:6px;margin-top:6px"/></div>`;
@@ -930,6 +927,7 @@
           // delete click handler
           delBtn.addEventListener("click", async (ev) => {
             ev.stopPropagation();
+            // console.log("Current token before delete:", token);
             const id = el.dataset.msgId;
             if (!id) {
               return alert("Cannot delete: message id not available yet.");
@@ -944,10 +942,21 @@
             delBtn.innerHTML = "…";
 
             try {
-              const res = await fetch(`/messages/${id}`, {
+              // Determine whether this message is private.
+              // Prefer explicit m.chatType if present (messages loaded from server),
+              // otherwise fall back to current UI mode.
+              const isPrivate =
+                (m.chatType && m.chatType === "private") || mode === "private";
+
+              const endpoint = isPrivate
+                ? `/messages/private/${id}`
+                : `/messages/${id}`;
+
+              // call correct endpoint
+              const res = await fetch(endpoint, {
                 method: "DELETE",
                 headers: {
-                  Authorization: "Bearer " + token, // 🔑 token भेजना ज़रूरी
+                  Authorization: "Bearer " + token,
                   "Content-Type": "application/json",
                 },
               });
