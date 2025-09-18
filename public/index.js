@@ -1,554 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TalkSphere</title>
-    <style>
-      :root {
-        --accent: #df5555;
-        --green: #28a745;
-      }
-
-      /* ======== GLOBAL ======== */
-      body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: #fafafa;
-      }
-      h1,
-      h2 {
-        margin: 0;
-      }
-
-      /* ========== Responsive Logo ========== */
-      .header h1 {
-        font-size: clamp(20px, 5vw, 28px); /* shrink with screen */
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--accent);
-      }
-
-      .header h1 span.logo {
-        font-size: clamp(22px, 6vw, 32px); /* logo emoji adjusts too */
-      }
-
-      /* ========== Mobile mode adjustments ========== */
-      @media (max-width: 600px) {
-        .app {
-          flex-direction: column;
-          align-items: stretch;
-        }
-        .left-panel,
-        .chat-area {
-          width: 100%;
-        }
-
-        /* By default hide chat-area when in private/group until user selected */
-        .chat-area.hidden {
-          display: none;
-        }
-      }
-
-      /* ======== HEADER ======== */
-      .header {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        padding: 18px;
-        background: #fff;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-        position: relative;
-      }
-
-      #current-user {
-        position: relative;
-        cursor: pointer;
-        color: #7c7b7b;
-      }
-      #logout-option {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        background: #fff;
-        border: 1px solid #ccc;
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 14px;
-        cursor: pointer;
-        display: none;
-        white-space: nowrap;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      }
-      #logout-option:hover {
-        background: #f5f5f5;
-      }
-
-      /* ======== APP LAYOUT ======== */
-      .app {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-        padding: 10px;
-      }
-      .left-panel {
-        width: 220px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-
-      /*========== chat box and input row ==========*/
-      #chatTitle {
-        display: none; /* by default hide */
-      }
-
-      .chat-area {
-        width: 640px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .chat-box {
-        background: #fff;
-        border-radius: 8px;
-        height: 420px;
-        padding: 12px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .input-row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .input-wrapper {
-        position: relative;
-        flex: 1;
-      }
-
-      #fileBtn {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        font-size: 18px;
-        user-select: none;
-      }
-
-      .input {
-        width: 100%;
-        padding: 12px;
-        border-radius: 20px;
-        border: 1px solid #ddd;
-        font-size: 14px;
-        box-sizing: border-box;
-        text-align: center;
-      }
-
-      .btn {
-        padding: 10px 16px;
-        border-radius: 20px;
-        background: var(--green);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-      }
-
-      #emojiBtn {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        font-size: 20px;
-        user-select: none;
-      }
-      emoji-picker {
-        position: absolute;
-        bottom: 110%;
-        right: 0;
-        z-index: 1000;
-        width: 320px;
-        max-height: 360px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-      }
-
-      /*========== end chat box and input row ==========*/
-
-      /* ======== CARDS & LISTS ======== */
-
-      .card {
-        background: #fff;
-        border-radius: 10px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-        padding: 12px;
-      }
-      .modes {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-      }
-      .user-list {
-        max-height: 420px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .user-item {
-        padding: 8px;
-        border-radius: 8px;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .user-item:hover {
-        background: #f3f3f3;
-      }
-      .badge {
-        background: red;
-        color: white;
-        border-radius: 50%;
-        padding: 2px 6px;
-        font-size: 12px;
-        margin-left: 6px;
-      }
-
-      /*======== CHAT BOX ========*/
-
-      .chat-header {
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 10;
-        padding: 8px;
-        border-bottom: 1px solid #ddd;
-        display: none;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-      }
-
-      .back-btn {
-        display: none;
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: var(--accent);
-      }
-
-      /* Mobile: show back button */
-      @media (max-width: 600px) {
-        .back-btn {
-          display: flex;
-        }
-        .chat-header {
-          display: flex;
-        }
-      }
-
-      /* Make only messages scroll */
-      .chat-area {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
-
-      /* .chat-box {
-        flex: 1;
-        overflow-y: auto;
-        padding: 10px;
-      } */
-
-      .input-row {
-        position: sticky;
-        bottom: 0;
-        background: #fff;
-        padding: 8px;
-        border-top: 1px solid #ddd;
-        z-index: 10;
-      }
-
-      .chat-box {
-        background: #fff;
-        border-radius: 8px;
-        height: 420px;
-        padding: 12px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .input-row {
-        display: flex;
-        gap: 8px;
-      }
-      .input {
-        flex: 1;
-        padding: 12px;
-        border-radius: 20px;
-        border: 1px solid #ddd;
-        font-size: 14px;
-      }
-      .btn {
-        padding: 10px 16px;
-        border-radius: 20px;
-        background: var(--green);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-      }
-
-      .message {
-        max-width: 70%;
-        padding: 8px 12px;
-        border-radius: 12px;
-        word-wrap: break-word;
-      }
-      .message.me {
-        background: #dcf8c6;
-        align-self: flex-end;
-        text-align: right;
-      }
-      .message.other {
-        background: #f1f0f0;
-        align-self: flex-start;
-        text-align: left;
-      }
-      .meta {
-        font-size: 12px;
-        color: gray;
-        margin-top: 6px;
-      }
-
-      /* Fullscreen image modal */
-      .img-modal {
-        display: none;
-        position: fixed;
-        z-index: 2000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        justify-content: center;
-        align-items: center;
-      }
-
-      .img-modal img {
-        max-width: 90%;
-        max-height: 90%;
-        border-radius: 8px;
-      }
-
-      .img-modal span {
-        position: absolute;
-        top: 20px;
-        right: 35px;
-        font-size: 40px;
-        color: white;
-        cursor: pointer;
-      }
-
-      .coming-soon {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 320px;
-        color: gray;
-        font-style: italic;
-      }
-
-      #loginOverlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.35);
-      }
-      .login-card {
-        width: 360px;
-        padding: 16px;
-        border-radius: 8px;
-        background: #fff;
-      }
-      .login-card input {
-        width: 95%;
-        padding: 8px;
-        margin-top: 6px;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-      }
-      .login-card .btn {
-        width: 100%;
-        margin-top: 12px;
-      }
-
-      /* Delete button styling for each message */
-      .message {
-        position: relative; /* anchor for absolute delete button */
-      }
-
-      .delete-small {
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        display: none;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 1px solid #eee;
-        background: #fff;
-        font-size: 14px;
-        line-height: 1;
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-        padding: 0;
-      }
-
-      /* when toggled on (after dblclick) show delete button */
-      .message.show-delete .delete-small {
-        display: flex;
-      }
-
-      @media (max-width: 900px) {
-        .app {
-          flex-direction: column;
-          align-items: center;
-        }
-        .left-panel,
-        .chat-area {
-          width: 95%;
-        }
-      }
-    </style>
-
-    <!-- load the emoji-picker once -->
-    <script
-      type="module"
-      src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"
-    ></script>
-  </head>
-
-  <body>
-    <!-- HEADER -->
-    <div class="header">
-      <h1>TalkSphere 🎙️</h1>
-      <div id="current-user">
-        <span id="username"></span>
-        <div id="logout-option">Logout</div>
-      </div>
-    </div>
-
-    <!-- APP LAYOUT -->
-    <div class="app">
-      <div class="left-panel">
-        <div class="card">
-          <div style="text-align: center; margin-bottom: 8px; font-weight: 600">
-            Mode
-          </div>
-          <div class="modes">
-            <label
-              ><input type="radio" name="mode" value="public" /> Public</label
-            >
-            <label
-              ><input type="radio" name="mode" value="private" /> Private</label
-            >
-            <label
-              ><input type="radio" name="mode" value="group" /> Group</label
-            >
-          </div>
-        </div>
-
-        <div class="card" id="usersCard" style="margin-top: 10px">
-          <div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
-          <div class="user-list" id="leftList"></div>
-        </div>
-      </div>
-
-      <div class="chat-area">
-        <div class="chat-header">
-          <button id="backBtn" class="back-btn">← Go Back</button>
-        </div>
-
-        <div class="card chat-box" id="chatBox"></div>
-
-        <div class="input-row" style="display: none">
-          <div class="input-wrapper">
-            <span id="fileBtn">📎</span>
-            <input type="file" id="fileInput" style="display: none" />
-            <input id="messageInput" class="input" placeholder="message..." />
-            <span id="emojiBtn">😊</span>
-            <!-- initially hidden -->
-            <emoji-picker id="emojiPicker" style="display: none"></emoji-picker>
-          </div>
-          <button id="sendBtn" class="btn">Send</button>
-        </div>
-      </div>
-
-      <!-- Fullscreen image preview modal -->
-      <div id="imgModal" class="img-modal">
-        <span id="closeModal">&times;</span>
-        <img id="modalImg" />
-      </div>
-    </div>
-
-    <!-- LOGIN / SIGNUP OVERLAY -->
-    <div id="loginOverlay">
-      <div class="login-card card">
-        <h2 style="margin: 0; color: var(--accent)">Welcome to TalkSphere</h2>
-        <div style="display: flex; gap: 12px; margin: 12px 0">
-          <button
-            id="showLogin"
-            class="btn"
-            style="flex: 1; background: var(--accent)"
-          >
-            Login
-          </button>
-          <button
-            id="showSignup"
-            class="btn"
-            style="flex: 1; background: var(--green)"
-          >
-            Signup
-          </button>
-        </div>
-
-        <div id="loginForm">
-          <p style="color: gray; margin: 6px 0">Enter username & login</p>
-          <label>Username</label>
-          <input id="loginUserName" placeholder="yourUser123" />
-          <button id="loginBtn" class="btn">Login</button>
-        </div>
-
-        <div id="signupForm" style="display: none">
-          <p style="color: gray; margin: 6px 0">
-            Enter Name, Email & unique Username
-          </p>
-          <label>Name</label><input id="signupName" /> <label>Email</label
-          ><input id="signupEmail" /> <label>Username</label
-          ><input id="signupUserName" placeholder="abc1234" />
-          <button id="signupBtn" class="btn">Signup</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Socket.io -->
-    <script src="/socket.io/socket.io.js"></script>
-
-    <script>
+ 
       // ========== DOM refs ==========
       const socket = io();
 
@@ -663,7 +113,7 @@
           u = signupUserName.value.trim();
         if (!n || !e || !u) return alert("Fill all fields");
         try {
-          const res = await fetch("/login", {
+          const res = await fetch("/api/v1/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -696,7 +146,7 @@
         const u = loginUserName.value.trim();
         if (!u) return alert("Enter username");
         try {
-          const res = await fetch("/login", {
+          const res = await fetch("/api/v1/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userName: u, exist: true }),
@@ -949,8 +399,8 @@
                 (m.chatType && m.chatType === "private") || mode === "private";
 
               const endpoint = isPrivate
-                ? `/messages/private/${id}`
-                : `/messages/${id}`;
+                ? `/api/v1/messages/private/${id}`
+                : `/api/v1/messages/${id}`;
 
               // call correct endpoint
               const res = await fetch(endpoint, {
@@ -994,7 +444,7 @@
 
       async function fetchUsers() {
         try {
-          const res = await fetch("/users");
+          const res = await fetch("/api/v1/users");
           const data = await res.json();
           allUsers = data;
           renderUserList(data);
@@ -1002,6 +452,48 @@
           console.error("fetch users error", err);
         }
       }
+
+      // previous version of renderUserList (commented out)
+      // function renderUserList(users) {
+      //   leftList.innerHTML = "";
+      //   if (mode === "public") {
+      //     leftList.innerHTML = `<div style="color:gray;text-align:center">Public chat - all messages visible</div>`;
+      //     return;
+      //   }
+      //   if (mode === "group") {
+      //     ["QA Team", "Ops", "Managers"].forEach((g) => {
+      //       const it = document.createElement("div");
+      //       it.className = "user-item";
+      //       it.textContent = g;
+      //       it.onclick = () => {
+      //         clearChat();
+      //         const el = document.createElement("div");
+      //         el.className = "coming-soon";
+      //         el.textContent = "Group chat coming soon.";
+      //         chatBox.appendChild(el);
+      //       };
+      //       leftList.appendChild(it);
+      //     });
+      //     return;
+      //   }
+      //   users.forEach((u) => {
+      //     if (u.userName === me.userName) return;
+      //     const it = document.createElement("div");
+      //     it.className = "user-item";
+      //     let badge = "";
+      //     if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0)
+      //       badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
+      //     it.innerHTML = `<div>${u.name}<div style="font-size:11px;color:gray">@${u.userName}</div></div>${badge}`;
+      //     it.onclick = async () => {
+      //       selectedPrivate = u.userName;
+      //       localStorage.setItem("selectedPrivate", selectedPrivate);
+      //       unreadCounts[u.userName] = 0;
+      //       renderUserList(allUsers);
+      //       await loadPrivate(selectedPrivate);
+      //     };
+      //     leftList.appendChild(it);
+      //   });
+      // }
 
       // updated version of renderUserList with improved logic
       function renderUserList(users) {
@@ -1069,7 +561,7 @@
       async function loadPublic() {
         clearChat();
         try {
-          const res = await fetch("/messages/public");
+          const res = await fetch("/api/v1/messages/public");
           const data = await res.json();
           data.forEach((m) => appendMessage(m));
         } catch (err) {
@@ -1080,7 +572,7 @@
       async function loadPrivate(other) {
         clearChat();
         try {
-          const res = await fetch(`/messages/private/${me.userName}/${other}`);
+          const res = await fetch(`/api/v1/messages/private/${me.userName}/${other}`);
           const data = await res.json();
           if (!data.length) {
             const node = document.createElement("div");
@@ -1095,6 +587,24 @@
         }
       }
 
+      // async function onModeChange() {
+      //   clearChat();
+      //   if (mode === "public") {
+      //     await fetchUsers();
+      //     await loadPublic();
+      //   } else if (mode === "private") {
+      //     await fetchUsers();
+      //     if (selectedPrivate) await loadPrivate(selectedPrivate);
+      //   } else if (mode === "group") {
+      //     fetchUsers();
+      //     const el = document.createElement("div");
+      //     el.className = "coming-soon";
+      //     el.textContent = "Group functionality coming soon.";
+      //     chatBox.appendChild(el);
+      //   }
+      // }
+
+      // updated version of onModeChange with improved logic
       // When switching mode, adjust view for mobile
       async function onModeChange() {
         clearChat();
@@ -1146,7 +656,7 @@
           formData.append("file", selectedFile);
 
           try {
-            const res = await fetch("/upload", {
+            const res = await fetch("/api/v1/upload", {
               method: "POST",
               body: formData,
             });
@@ -1350,6 +860,4 @@
           msgDiv.remove();
         }
       });
-    </script>
-  </body>
-</html>
+    
