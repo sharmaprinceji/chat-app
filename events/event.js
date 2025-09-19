@@ -1,4 +1,4 @@
-import { io } from "../app.js";
+import { io } from "../server.js";
 import Conversation from "../model/Conversation.js";
 
 const onlineMap = new Map();

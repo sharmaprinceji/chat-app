@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    container_name: chat-app
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    command: ["npm", "run", "dev"]

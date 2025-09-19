@@ -2,7 +2,7 @@ import User from "../model/User.js";
 import jwt from "jsonwebtoken";
 import cloudinary from "cloudinary";
 import Conversation from "../model/Conversation.js";
-import { io } from "../app.js";
+import { io } from "../server.js";
 import streamifier from "streamifier";
 
 export const login = async (req, res) => {
