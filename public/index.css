@@ -1,430 +1,540 @@
 /* ======== VARIABLES ======== */
-      :root {
-        --accent: #df5555;
-        --green: #28a745;
-      }
+:root {
+  --accent: #df5555;
+  --green: #28a745;
+}
 
-      /* ======== GLOBAL ======== */
-      body {
-        margin: 0;
-        font-family: Arial, sans-serif;
-        background: #fafafa;
-      }
-      h1,
-      h2 {
-        margin: 0;
-      }
+/* ======== GLOBAL ======== */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #fafafa;
+}
 
-      /* ========== Responsive Logo ========== */
-      .header h1 {
-        font-size: clamp(20px, 5vw, 28px); /* shrink with screen */
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--accent);
-      }
+h1,
+h2 {
+  margin: 0;
+}
 
-      .header h1 span.logo {
-        font-size: clamp(22px, 6vw, 32px); /* logo emoji adjusts too */
-      }
+/* ========== Responsive Logo ========== */
+.header h1 {
+  font-size: clamp(20px, 5vw, 28px);
+  /* shrink with screen */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
 
-      /* ========== Mobile mode adjustments ========== */
-      @media (max-width: 600px) {
-        .app {
-          flex-direction: column;
-          align-items: stretch;
-        }
-        .left-panel,
-        .chat-area {
-          width: 100%;
-        }
+.header h1 span.logo {
+  font-size: clamp(22px, 6vw, 32px);
+  /* logo emoji adjusts too */
+}
 
-        /* By default hide chat-area when in private/group until user selected */
-        .chat-area.hidden {
-          display: none;
-        }
-      }
+/* ========== Mobile mode adjustments ========== */
+@media (max-width: 600px) {
+  .app {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-      /* ======== HEADER ======== */
-      .header {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        padding: 18px;
-        background: #fff;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-        position: relative;
-      }
+  .left-panel,
+  .chat-area {
+    width: 100%;
+  }
 
-      #current-user {
-        position: relative;
-        cursor: pointer;
-        color: #7c7b7b;
-      }
-      #logout-option {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        background: #fff;
-        border: 1px solid #ccc;
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 14px;
-        cursor: pointer;
-        display: none;
-        white-space: nowrap;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      }
-      #logout-option:hover {
-        background: #f5f5f5;
-      }
+  /* By default hide chat-area when in private/group until user selected */
+  .chat-area.hidden {
+    display: none;
+  }
+}
 
-      /* ======== APP LAYOUT ======== */
-      .app {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
-        padding: 10px;
-      }
-      .left-panel {
-        width: 220px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
+/* ======== HEADER ======== */
+.header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 18px;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
 
-      /*========== chat box and input row ==========*/
-      #chatTitle {
-        display: none; /* by default hide */
-      }
+/* Current user container */
+#current-user {
+  display: flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  gap: 8px;
+}
 
-      .chat-area {
-        width: 640px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .chat-box {
-        background: #fff;
-        border-radius: 8px;
-        height: 420px;
-        padding: 12px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
+/* Profile image */
+#profilePic {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+  cursor: pointer;
+}
 
-      .input-row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .input-wrapper {
-        position: relative;
-        flex: 1;
-      }
+/* Dropdown */
+.dropdown {
+  display: none;
+  position: absolute;
+  top: 50px;
+  right: 0;
+  background: #fff;
+  color: #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  min-width: 150px;
+  z-index: 100;
+  flex-direction: column;
+}
 
-      #fileBtn {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        font-size: 18px;
-        user-select: none;
-      }
+.dropdown-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
 
-      .input {
-        width: 100%;
-        padding: 12px;
-        border-radius: 20px;
-        border: 1px solid #ddd;
-        font-size: 14px;
-        box-sizing: border-box;
-        text-align: center;
-      }
+.dropdown-item:hover {
+  background: #f2f2f2;
+}
 
-      .btn {
-        padding: 10px 16px;
-        border-radius: 20px;
-        background: var(--green);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-      }
+/* Show dropdown when active */
+#current-user.show-dropdown .dropdown {
+  display: flex;
+}
 
-      #emojiBtn {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        font-size: 20px;
-        user-select: none;
-      }
-      emoji-picker {
-        position: absolute;
-        bottom: 110%;
-        right: 0;
-        z-index: 1000;
-        width: 320px;
-        max-height: 360px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-      }
+#logout-option {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
 
-      /*========== end chat box and input row ==========*/
+#logout-option:hover {
+  background: #f5f5f5;
+}
 
-      /* ======== CARDS & LISTS ======== */
+/* ======== PROFILE MODAL ======== */
 
-      .card {
-        background: #fff;
-        border-radius: 10px;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-        padding: 12px;
-      }
-      .modes {
-        display: flex;
-        gap: 8px;
-        justify-content: center;
-      }
-      .user-list {
-        max-height: 420px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .user-item {
-        padding: 8px;
-        border-radius: 8px;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .user-item:hover {
-        background: #f3f3f3;
-      }
-      .badge {
-        background: red;
-        color: white;
-        border-radius: 50%;
-        padding: 2px 6px;
-        font-size: 12px;
-        margin-left: 6px;
-      }
+.profile-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
 
-      /*======== CHAT BOX ========*/
+.profile-card {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  width: 320px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  position: relative;
+}
 
-      .chat-header {
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 10;
-        padding: 8px;
-        border-bottom: 1px solid #ddd;
-        display: none;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-      }
+.profile-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent);
+  margin-bottom: 10px;
+}
 
-      .back-btn {
-        display: none;
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: var(--accent);
-      }
+.close-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-size: 26px;
+  cursor: pointer;
+  color: #555;
+}
 
-      /* Mobile: show back button */
-      @media (max-width: 600px) {
-        .back-btn {
-          display: flex;
-        }
-        .chat-header {
-          display: flex;
-        }
-      }
+/* ======== APP LAYOUT ======== */
+.app {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  padding: 10px;
+}
 
-      /* Make only messages scroll */
-      .chat-area {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-      }
+.left-panel {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-      /* .chat-box {
+/*========== chat box and input row ==========*/
+#chatTitle {
+  display: none;
+  /* by default hide */
+}
+
+.chat-area {
+  width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-box {
+  background: #fff;
+  border-radius: 8px;
+  height: 420px;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+#fileBtn {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 18px;
+  user-select: none;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 20px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+#emojiBtn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 20px;
+  user-select: none;
+}
+
+emoji-picker {
+  position: absolute;
+  bottom: 110%;
+  right: 0;
+  z-index: 1000;
+  width: 320px;
+  max-height: 360px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+/*========== end chat box and input row ==========*/
+
+/* ======== CARDS & LISTS ======== */
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  padding: 12px;
+}
+
+.modes {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.user-list {
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-item {
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-item:hover {
+  background: #f3f3f3;
+}
+
+.badge {
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+/*======== CHAT BOX ========*/
+
+.chat-header {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.back-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--accent);
+}
+
+/* Mobile: show back button */
+@media (max-width: 600px) {
+  .back-btn {
+    display: flex;
+  }
+
+  .chat-header {
+    display: flex;
+  }
+}
+
+/* Make only messages scroll */
+.chat-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* .chat-box {
         flex: 1;
         overflow-y: auto;
         padding: 10px;
       } */
 
-      .input-row {
-        position: sticky;
-        bottom: 0;
-        background: #fff;
-        padding: 8px;
-        border-top: 1px solid #ddd;
-        z-index: 10;
-      }
+.input-row {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding: 8px;
+  border-top: 1px solid #ddd;
+  z-index: 10;
+}
 
-      .chat-box {
-        background: #fff;
-        border-radius: 8px;
-        height: 420px;
-        padding: 12px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .input-row {
-        display: flex;
-        gap: 8px;
-      }
-      .input {
-        flex: 1;
-        padding: 12px;
-        border-radius: 20px;
-        border: 1px solid #ddd;
-        font-size: 14px;
-      }
-      .btn {
-        padding: 10px 16px;
-        border-radius: 20px;
-        background: var(--green);
-        color: #fff;
-        border: none;
-        cursor: pointer;
-      }
+.chat-box {
+  background: #fff;
+  border-radius: 8px;
+  height: 420px;
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-      .message {
-        max-width: 70%;
-        padding: 8px 12px;
-        border-radius: 12px;
-        word-wrap: break-word;
-      }
-      .message.me {
-        background: #dcf8c6;
-        align-self: flex-end;
-        text-align: right;
-      }
-      .message.other {
-        background: #f1f0f0;
-        align-self: flex-start;
-        text-align: left;
-      }
-      .meta {
-        font-size: 12px;
-        color: gray;
-        margin-top: 6px;
-      }
+.input-row {
+  display: flex;
+  gap: 8px;
+}
 
-      /* Fullscreen image modal */
-      .img-modal {
-        display: none;
-        position: fixed;
-        z-index: 2000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        justify-content: center;
-        align-items: center;
-      }
+.input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
 
-      .img-modal img {
-        max-width: 90%;
-        max-height: 90%;
-        border-radius: 8px;
-      }
+.btn {
+  padding: 10px 16px;
+  border-radius: 20px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
 
-      .img-modal span {
-        position: absolute;
-        top: 20px;
-        right: 35px;
-        font-size: 40px;
-        color: white;
-        cursor: pointer;
-      }
+.message {
+  max-width: 70%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  word-wrap: break-word;
+}
 
-      .coming-soon {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 320px;
-        color: gray;
-        font-style: italic;
-      }
+.message.me {
+  background: #dcf8c6;
+  align-self: flex-end;
+  text-align: right;
+}
 
-      #loginOverlay {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 0, 0, 0.35);
-      }
-      .login-card {
-        width: 360px;
-        padding: 16px;
-        border-radius: 8px;
-        background: #fff;
-      }
-      .login-card input {
-        width: 95%;
-        padding: 8px;
-        margin-top: 6px;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-      }
-      .login-card .btn {
-        width: 100%;
-        margin-top: 12px;
-      }
+.message.other {
+  background: #f1f0f0;
+  align-self: flex-start;
+  text-align: left;
+}
 
-      /* Delete button styling for each message */
-      .message {
-        position: relative; /* anchor for absolute delete button */
-      }
+.meta {
+  font-size: 12px;
+  color: gray;
+  margin-top: 6px;
+}
 
-      .delete-small {
-        position: absolute;
-        top: 6px;
-        right: 6px;
-        display: none;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 1px solid #eee;
-        background: #fff;
-        font-size: 14px;
-        line-height: 1;
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-        padding: 0;
-      }
+/* Fullscreen image modal */
+.img-modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  justify-content: center;
+  align-items: center;
+}
 
-      /* when toggled on (after dblclick) show delete button */
-      .message.show-delete .delete-small {
-        display: flex;
-      }
+.img-modal img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 8px;
+}
 
-      @media (max-width: 900px) {
-        .app {
-          flex-direction: column;
-          align-items: center;
-        }
-        .left-panel,
-        .chat-area {
-          width: 95%;
-        }
-      }
-   
+.img-modal span {
+  position: absolute;
+  top: 20px;
+  right: 35px;
+  font-size: 40px;
+  color: white;
+  cursor: pointer;
+}
+
+.coming-soon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 320px;
+  color: gray;
+  font-style: italic;
+}
+
+#loginOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.login-card {
+  width: 360px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.login-card input {
+  width: 95%;
+  padding: 8px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.login-card .btn {
+  width: 100%;
+  margin-top: 12px;
+}
+
+/* Delete button styling for each message */
+.message {
+  position: relative;
+  /* anchor for absolute delete button */
+}
+
+.delete-small {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid #eee;
+  background: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  padding: 0;
+}
+
+/* when toggled on (after dblclick) show delete button */
+.message.show-delete .delete-small {
+  display: flex;
+}
+
+@media (max-width: 900px) {
+  .app {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .left-panel,
+  .chat-area {
+    width: 95%;
+  }
+}

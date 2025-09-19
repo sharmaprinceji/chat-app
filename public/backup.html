@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TalkSphere</title>
     <style>
+      /* ======== VARIABLES ======== */
       :root {
         --accent: #df5555;
         --green: #28a745;
@@ -16,6 +17,7 @@
         font-family: Arial, sans-serif;
         background: #fafafa;
       }
+
       h1,
       h2 {
         margin: 0;
@@ -23,7 +25,8 @@
 
       /* ========== Responsive Logo ========== */
       .header h1 {
-        font-size: clamp(20px, 5vw, 28px); /* shrink with screen */
+        font-size: clamp(20px, 5vw, 28px);
+        /* shrink with screen */
         display: flex;
         align-items: center;
         gap: 6px;
@@ -31,7 +34,8 @@
       }
 
       .header h1 span.logo {
-        font-size: clamp(22px, 6vw, 32px); /* logo emoji adjusts too */
+        font-size: clamp(22px, 6vw, 32px);
+        /* logo emoji adjusts too */
       }
 
       /* ========== Mobile mode adjustments ========== */
@@ -40,6 +44,7 @@
           flex-direction: column;
           align-items: stretch;
         }
+
         .left-panel,
         .chat-area {
           width: 100%;
@@ -63,11 +68,55 @@
         position: relative;
       }
 
+      /* Current user container */
       #current-user {
+        display: flex;
+        align-items: center;
         position: relative;
         cursor: pointer;
-        color: #7c7b7b;
+        gap: 8px;
       }
+
+      /* Profile image */
+      #profilePic {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid white;
+        cursor: pointer;
+      }
+
+      /* Dropdown */
+      .dropdown {
+        display: none;
+        position: absolute;
+        top: 50px;
+        right: 0;
+        background: #fff;
+        color: #333;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        min-width: 150px;
+        z-index: 100;
+        flex-direction: column;
+      }
+
+      .dropdown-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+
+      .dropdown-item:hover {
+        background: #f2f2f2;
+      }
+
+      /* Show dropdown when active */
+      #current-user.show-dropdown .dropdown {
+        display: flex;
+      }
+
       #logout-option {
         position: absolute;
         top: 100%;
@@ -82,8 +131,49 @@
         white-space: nowrap;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
       }
+
       #logout-option:hover {
         background: #f5f5f5;
+      }
+
+      /* ======== PROFILE MODAL ======== */
+
+      .profile-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 3000;
+      }
+
+      .profile-card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        text-align: center;
+        width: 320px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        position: relative;
+      }
+
+      .profile-large {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--accent);
+        margin-bottom: 10px;
+      }
+
+      .close-btn {
+        position: absolute;
+        top: 12px;
+        right: 16px;
+        font-size: 26px;
+        cursor: pointer;
+        color: #555;
       }
 
       /* ======== APP LAYOUT ======== */
@@ -93,6 +183,7 @@
         justify-content: center;
         padding: 10px;
       }
+
       .left-panel {
         width: 220px;
         display: flex;
@@ -102,7 +193,8 @@
 
       /*========== chat box and input row ==========*/
       #chatTitle {
-        display: none; /* by default hide */
+        display: none;
+        /* by default hide */
       }
 
       .chat-area {
@@ -111,6 +203,7 @@
         flex-direction: column;
         gap: 10px;
       }
+
       .chat-box {
         background: #fff;
         border-radius: 8px;
@@ -127,6 +220,7 @@
         gap: 8px;
         align-items: center;
       }
+
       .input-wrapper {
         position: relative;
         flex: 1;
@@ -170,6 +264,7 @@
         font-size: 20px;
         user-select: none;
       }
+
       emoji-picker {
         position: absolute;
         bottom: 110%;
@@ -190,11 +285,13 @@
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
         padding: 12px;
       }
+
       .modes {
         display: flex;
         gap: 8px;
         justify-content: center;
       }
+
       .user-list {
         max-height: 420px;
         overflow-y: auto;
@@ -202,6 +299,7 @@
         flex-direction: column;
         gap: 6px;
       }
+
       .user-item {
         padding: 8px;
         border-radius: 8px;
@@ -210,9 +308,11 @@
         justify-content: space-between;
         align-items: center;
       }
+
       .user-item:hover {
         background: #f3f3f3;
       }
+
       .badge {
         background: red;
         color: white;
@@ -251,6 +351,7 @@
         .back-btn {
           display: flex;
         }
+
         .chat-header {
           display: flex;
         }
@@ -288,10 +389,12 @@
         flex-direction: column;
         gap: 8px;
       }
+
       .input-row {
         display: flex;
         gap: 8px;
       }
+
       .input {
         flex: 1;
         padding: 12px;
@@ -299,6 +402,7 @@
         border: 1px solid #ddd;
         font-size: 14px;
       }
+
       .btn {
         padding: 10px 16px;
         border-radius: 20px;
@@ -314,16 +418,19 @@
         border-radius: 12px;
         word-wrap: break-word;
       }
+
       .message.me {
         background: #dcf8c6;
         align-self: flex-end;
         text-align: right;
       }
+
       .message.other {
         background: #f1f0f0;
         align-self: flex-start;
         text-align: left;
       }
+
       .meta {
         font-size: 12px;
         color: gray;
@@ -376,12 +483,14 @@
         justify-content: center;
         background: rgba(0, 0, 0, 0.35);
       }
+
       .login-card {
         width: 360px;
         padding: 16px;
         border-radius: 8px;
         background: #fff;
       }
+
       .login-card input {
         width: 95%;
         padding: 8px;
@@ -389,6 +498,7 @@
         border-radius: 6px;
         border: 1px solid #ddd;
       }
+
       .login-card .btn {
         width: 100%;
         margin-top: 12px;
@@ -396,7 +506,8 @@
 
       /* Delete button styling for each message */
       .message {
-        position: relative; /* anchor for absolute delete button */
+        position: relative;
+        /* anchor for absolute delete button */
       }
 
       .delete-small {
@@ -428,6 +539,7 @@
           flex-direction: column;
           align-items: center;
         }
+
         .left-panel,
         .chat-area {
           width: 95%;
@@ -446,9 +558,28 @@
     <!-- HEADER -->
     <div class="header">
       <h1>TalkSphere 🎙️</h1>
+
       <div id="current-user">
+        <!-- Profile picture -->
+        <img
+          id="profilePic"
+          src="https://images.pexels.com/photos/1704488/pexels-photo-1704488.jpeg"
+          alt="profile"
+        />
+
+        <!-- First name -->
         <span id="username"></span>
+
         <div id="logout-option">Logout</div>
+
+        <!-- Dropdown toggle (click on img) -->
+        <div id="profileDropdown" class="dropdown">
+          <label for="profileUpload" class="dropdown-item"
+            >Change Profile</label
+          >
+          <input type="file" id="profileUpload" style="display: none" />
+          <!-- <div id="logout-option" class="dropdown-item">Logout</div> -->
+        </div>
       </div>
     </div>
 
@@ -663,7 +794,7 @@
           u = signupUserName.value.trim();
         if (!n || !e || !u) return alert("Fill all fields");
         try {
-          const res = await fetch("/login", {
+          const res = await fetch("/api/v1/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -696,7 +827,7 @@
         const u = loginUserName.value.trim();
         if (!u) return alert("Enter username");
         try {
-          const res = await fetch("/login", {
+          const res = await fetch("/api/v1/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userName: u, exist: true }),
@@ -756,17 +887,134 @@
         }
       });
 
+      // ========== UI Profile logic code  ==========
+      document.addEventListener("DOMContentLoaded", () => {
+        const profilePic = document.getElementById("profilePic");
+        const profileDropdown = document.getElementById("profileDropdown");
+        const logoutOption = document.getElementById("logout-option");
+        const profileUpload = document.getElementById("profileUpload");
+        const usernameSpan = document.getElementById("username");
+
+        let token = localStorage.getItem("token");
+
+        // ---------- Dropdown toggle ----------
+        profilePic.addEventListener("click", () => {
+          document
+            .getElementById("current-user")
+            .classList.toggle("show-dropdown");
+        });
+
+        // ---------- Logout ----------
+        // logoutOption.addEventListener("click", () => {
+        //   localStorage.removeItem("token");
+        //   window.location.reload();
+        // });
+
+        // ---------- Change Profile Picture ----------
+        profileUpload.addEventListener("change", async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          const username = localStorage.getItem("userName"); // saved at login
+          if (!username) {
+            alert("No username found in localStorage!");
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append("file", file);
+
+          // Debugging: check file actually added
+          // for (let [key, value] of formData.entries()) {
+          //   console.log(`${key}:`, value);
+          // }
+
+          try {
+            const res = await fetch(`/api/v1/uploadAvatar/${username}`, {
+              method: "POST",
+              body: formData,
+            });
+
+            const data = await res.json();
+            if (!res.ok)
+              throw new Error(data.message || "Profile update failed");
+            // Update UI
+            profilePic.src = data.avatarUrl;
+            alert("Profile updated successfully!");
+          } catch (err) {
+            console.error("Profile update error:", err);
+            alert("Failed to update profile");
+          }
+        });
+
+        // ---------- Profile Modal ----------
+        function openProfileModal(user) {
+          // Create modal wrapper
+          const modal = document.createElement("div");
+          modal.className = "profile-modal";
+          modal.innerHTML = `
+      <div class="profile-card">
+        <span class="close-btn">&times;</span>
+        <img src="${
+          user.avatar || "default-avatar.png"
+        }" alt="profile" class="profile-large" />
+        <h2>${user.name}</h2>
+        <p><b>Username:</b> ${user.username}</p>
+        <p><b>Email:</b> ${user.email}</p>
+        <p><b>Phone:</b> ${user.phone || "N/A"}</p>
+        <p><b>Role:</b> ${user.role}</p>
+      </div>
+    `;
+          document.body.appendChild(modal);
+
+          // Close modal
+          modal.querySelector(".close-btn").addEventListener("click", () => {
+            modal.remove();
+          });
+        }
+
+        // ---------- Fetch user details on load ----------
+        async function loadUserProfile() {
+          if (!token) return;
+          try {
+            const res = await fetch("/api/v1/getUser", {
+              headers: { Authorization: "Bearer " + token },
+            });
+            const data = await res.json();
+            if (!res.ok)
+              throw new Error(data.message || "Failed to fetch user");
+
+            // Update header
+            usernameSpan.textContent = data.name.split(" ")[0]; // first name
+            if (data.profilePic) {
+              profilePic.src = data.avatar;
+            }
+
+            // Open profile modal when clicking username
+            usernameSpan.addEventListener("click", () =>
+              openProfileModal(data)
+            );
+          } catch (err) {
+            console.error("Get user error:", err);
+          }
+        }
+
+        loadUserProfile();
+      });
+
       // logout
       currentUserDiv.addEventListener("click", (e) => {
         e.stopPropagation();
         logoutOption.style.display =
           logoutOption.style.display === "block" ? "none" : "block";
       });
+
       logoutOption.addEventListener("click", () => {
         localStorage.clear();
         socket.disconnect();
         location.reload();
       });
+
       document.addEventListener("click", () => {
         logoutOption.style.display = "none";
       });
@@ -949,8 +1197,8 @@
                 (m.chatType && m.chatType === "private") || mode === "private";
 
               const endpoint = isPrivate
-                ? `/messages/private/${id}`
-                : `/messages/${id}`;
+                ? `/api/v1/messages/private/${id}`
+                : `/api/v1/messages/${id}`;
 
               // call correct endpoint
               const res = await fetch(endpoint, {
@@ -994,7 +1242,7 @@
 
       async function fetchUsers() {
         try {
-          const res = await fetch("/users");
+          const res = await fetch("/api/v1/users");
           const data = await res.json();
           allUsers = data;
           renderUserList(data);
@@ -1069,7 +1317,7 @@
       async function loadPublic() {
         clearChat();
         try {
-          const res = await fetch("/messages/public");
+          const res = await fetch("/api/v1/messages/public");
           const data = await res.json();
           data.forEach((m) => appendMessage(m));
         } catch (err) {
@@ -1080,7 +1328,9 @@
       async function loadPrivate(other) {
         clearChat();
         try {
-          const res = await fetch(`/messages/private/${me.userName}/${other}`);
+          const res = await fetch(
+            `/api/v1/messages/private/${me.userName}/${other}`
+          );
           const data = await res.json();
           if (!data.length) {
             const node = document.createElement("div");
@@ -1095,6 +1345,7 @@
         }
       }
 
+      // updated version of onModeChange with improved logic
       // When switching mode, adjust view for mobile
       async function onModeChange() {
         clearChat();
@@ -1146,7 +1397,7 @@
           formData.append("file", selectedFile);
 
           try {
-            const res = await fetch("/upload", {
+            const res = await fetch("/api/v1/upload", {
               method: "POST",
               body: formData,
             });

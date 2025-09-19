@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>TalkSphere</title>
 
-     <!-- Link to index.css -->
-     <link rel="stylesheet" href="index.css" />
+    <!-- Link to index.css -->
+    <link rel="stylesheet" href="index.css" />
 
     <!-- load the emoji-picker once -->
     <script
@@ -19,9 +19,22 @@
     <!-- HEADER -->
     <div class="header">
       <h1>TalkSphere 🎙️</h1>
+
       <div id="current-user">
+        <!-- Profile picture -->
+        <img
+          id="profilePic"
+          src="https://images.pexels.com/photos/1704488/pexels-photo-1704488.jpeg"
+          alt="profile"
+        />
+
+        <!-- First name -->
         <span id="username"></span>
-        <div id="logout-option">Logout</div>
+        
+        <div id="logout-option" class="dropdown-item">Logout</div>
+
+        <!-- Hidden input for file upload -->
+        <input type="file" id="profileUpload" style="display: none" />
       </div>
     </div>
 
