@@ -3,13 +3,17 @@ import authMiddleware from "../utils/utils.js";
 import multer from "multer";
 
 import {
+  createGroup,
   deleteMessage,
   deletePrivateMessage,
+  getGroup,
+  getGroupMessage,
   getPrivateMessages,
   getPublicMessages,
   getUserDetail,
   listUsers,
   login,
+  newGroup,
   updateProfilePic,
   uploadImage,
 } from "../controller/controller.js";
@@ -38,5 +42,13 @@ router.delete("/messages/private/:id", authMiddleware, deletePrivateMessage);
 router.get("/getUser", authMiddleware, getUserDetail);
 
 router.post("/uploadAvatar/:username",upload.single("file"),updateProfilePic);
+
+router.post("/creates",authMiddleware,createGroup);
+
+router.get("/messages/group/:groupName/",getGroupMessage);
+
+router.post("/group/create", authMiddleware, newGroup);
+
+router.get("/groups/:username",getGroup); // reuse listUsers to get groups
 
 export default router;

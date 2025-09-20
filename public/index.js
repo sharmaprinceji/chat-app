@@ -566,28 +566,23 @@ function renderUserList(users) {
   }
 
   if (mode === "group") {
-    ["QA Team", "Ops", "Managers"].forEach((g) => {
+    leftList.innerHTML = "";
+
+    // Show existing groups only
+    const groups = allGroups || []; // assume you fetch groups from backend
+    groups.forEach((g) => {
       const it = document.createElement("div");
       it.className = "user-item";
-      it.textContent = g;
-      it.onclick = () => {
-        selectedPrivate = g; // simulate group selection
+      it.textContent = g.name; // group name
+      it.onclick = async () => {
+        selectedPrivate = g.name; // use same logic as private
         localStorage.setItem("selectedPrivate", selectedPrivate);
-
-        // in phone view, show chat and hide list
-        if (window.innerWidth <= 600) {
-          document.querySelector(".chat-area").classList.remove("hidden");
-          document.querySelector(".left-panel").style.display = "none";
-        }
-
         clearChat();
-        const el = document.createElement("div");
-        el.className = "coming-soon";
-        el.textContent = "Group chat coming soon.";
-        chatBox.appendChild(el);
+        await loadGroup(selectedPrivate); // group messages
       };
       leftList.appendChild(it);
     });
+
     return;
   }
 
@@ -645,7 +640,30 @@ async function loadPrivate(other) {
   }
 }
 
-// updated version of onModeChange with improved logic
+async function loadGroup(groupName) {
+  clearChat();
+  try {
+    const res = await fetch(`/api/v1/messages/group/${groupName}`);
+    const data = await res.json();
+    data.forEach((m) => appendMessage(m));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// fetch groups
+let allGroups = [];
+async function fetchGroups() {
+  try {
+    const res = await fetch("/api/v1/groups/" + me.userName);
+    console.log("Fetched groups:", res);
+    const data = await res.json();
+    allGroups = data;
+  } catch (err) {
+    console.error("fetch groups error", err);
+  }
+}
+
 // When switching mode, adjust view for mobile
 async function onModeChange() {
   clearChat();
@@ -665,18 +683,35 @@ async function onModeChange() {
       document.querySelector(".chat-area").classList.add("hidden");
     }
 
-    if (selectedPrivate) await loadPrivate(selectedPrivate);
-  } else if (mode === "group") {
-    fetchUsers();
+    if (selectedPrivate){
+       await loadPrivate(selectedPrivate);
+    } else {
+      // if no one selected, show placeholder
+      const el = document.createElement("div");
+      el.className = "coming-soon";
+      el.textContent = "Select a user to start chatting privately.";
+      chatBox.appendChild(el);
+    }
+  } 
+  else if (mode === "group") {
+    await fetchGroups();
+    updateGroupHeader(); // show create button
+    renderUserList(allUsers);
 
     if (window.innerWidth <= 600 && !selectedPrivate) {
       document.querySelector(".chat-area").classList.add("hidden");
     }
-
-    const el = document.createElement("div");
-    el.className = "coming-soon";
-    el.textContent = "Group functionality coming soon.";
-    chatBox.appendChild(el);
+    
+    if (selectedPrivate) {
+      // load the previously selected group’s messages
+      await loadGroup(selectedPrivate);
+    } else {
+      // if no group selected, show placeholder
+      const el = document.createElement("div");
+      el.className = "coming-soon";
+      el.textContent = "Select a group to start chatting.";
+      chatBox.appendChild(el);
+    }
   }
 }
 
@@ -726,6 +761,8 @@ sendBtn.addEventListener("click", async () => {
     msgData.to = selectedPrivate;
   }
 
+  if (mode === "group") msgData.to = selectedPrivate;
+
   // client-generated temp id to patch local element after server ack
   const clientTempId =
     "temp_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
@@ -754,6 +791,7 @@ sendBtn.addEventListener("click", async () => {
 });
 
 socket.on("receive_msg", (data) => {
+  console.log("Received msg====>", data);
   if (!me.userName) return;
 
   const from = data.userName;
@@ -772,7 +810,7 @@ socket.on("receive_msg", (data) => {
   }
 
   // PUBLIC / GROUP message
-  if (chatType === "public" || chatType === "group") {
+  if (chatType === "public") {
     // if this is an ack for our own message (server returned saved msg with clientTempId)
     if (from === me.userName && data.clientTempId) {
       const local = document.querySelector(
@@ -797,6 +835,38 @@ socket.on("receive_msg", (data) => {
       // if from me but no clientTempId & no local match → append to keep consistent
       safeAppend(data);
     }
+    return;
+  }
+
+  // GROUP message
+  if (chatType === "group") {
+    const groupName = data.to; // e.g., "my-gp"
+
+    // only show if this is the currently selected group
+    if (selectedPrivate === groupName) {
+      // ack handling for own message
+      if (from === me.userName && data.clientTempId) {
+        const local = document.querySelector(
+          `.message[data-temp-id="${data.clientTempId}"]`
+        );
+        if (local) {
+          if (data._id) local.dataset.msgId = data._id;
+          else if (data.id) local.dataset.msgId = data.id;
+
+          const meta = local.querySelector(".meta");
+          if (meta) meta.textContent = timeHM(data.time);
+          return;
+        }
+      }
+
+      // append if it's from others OR not already appended
+      safeAppend(data);
+    } else {
+      // unread count for groups (like private)
+      unreadCounts[groupName] = (unreadCounts[groupName] || 0) + 1;
+      renderUserList(allUsers);
+    }
+
     return;
   }
 
@@ -900,4 +970,99 @@ socket.on("messageDeleted", ({ id }) => {
   if (msgDiv) {
     msgDiv.remove();
   }
+});
+
+//group chat model option...
+const createGroupModal = document.getElementById("createGroupModal");
+const closeGroupModal = document.getElementById("closeGroupModal");
+const newGroupBtn = document.getElementById("newGroupBtn");
+const groupUserList = document.getElementById("groupUserList");
+const createGroupBtn = document.getElementById("createGroupBtn");
+
+// open modal
+newGroupBtn.addEventListener("click", () => {
+  groupUserList.innerHTML = ""; // clear previous
+
+  // show all users except self
+  allUsers.forEach((u) => {
+    if (u.userName === me.userName) return;
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <input type="checkbox" value="${u.userName}" id="chk_${u.userName}" />
+      <label for="chk_${u.userName}">${u.name} (@${u.userName})</label>
+    `;
+    groupUserList.appendChild(div);
+  });
+
+  createGroupModal.style.display = "flex";
+});
+
+// close modal
+closeGroupModal.addEventListener("click", () => {
+  createGroupModal.style.display = "none";
+});
+
+createGroupBtn.addEventListener("click", async () => {
+  const groupName = document.getElementById("newGroupName").value.trim();
+  if (!groupName) return alert("Enter group name");
+
+  // get selected users
+  const selectedUsers = Array.from(
+    groupUserList.querySelectorAll("input[type=checkbox]:checked")
+  ).map((chk) => chk.value);
+
+  if (selectedUsers.length === 0) return alert("Select at least one user");
+
+  // include self
+  selectedUsers.push(me.userName);
+
+  try {
+    const res = await fetch("/api/v1/group/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token,
+      },
+      body: JSON.stringify({ name: groupName, members: selectedUsers }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Group creation failed");
+
+    alert("Group created successfully!");
+
+    createGroupModal.style.display = "none";
+    document.getElementById("newGroupName").value = "";
+
+    await fetchGroups(); // reload groups
+    renderUserList(allUsers); // refresh left panel
+  } catch (err) {
+    console.error(err);
+    alert("Failed to create group: " + (err.message || ""));
+  }
+});
+
+///new logic for crete group button show/hide in group mode
+const groupHeader = document.getElementById("groupHeader");
+
+// Show/hide the "Create New Group" button in group mode
+function updateGroupHeader() {
+  if (mode === "group") {
+    groupHeader.style.display = "block";
+  } else {
+    groupHeader.style.display = "none";
+  }
+}
+
+// Attach click event to open modal
+newGroupBtn.addEventListener("click", () => {
+  createGroupModal.style.display = "flex";
+
+  // populate users list
+  groupUserList.innerHTML = "";
+  allUsers.forEach((u) => {
+    if (u.userName === me.userName) return; // skip self
+    const div = document.createElement("div");
+    div.innerHTML = `<input type="checkbox" value="${u.userName}" /> ${u.name} (@${u.userName})`;
+    groupUserList.appendChild(div);
+  });
 });

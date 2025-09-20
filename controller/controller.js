@@ -4,6 +4,7 @@ import cloudinary from "cloudinary";
 import Conversation from "../model/Conversation.js";
 import { io } from "../server.js";
 import streamifier from "streamifier";
+import Group from "../model/group.model.js";
 
 export const login = async (req, res) => {
   try {
@@ -112,7 +113,7 @@ export const getPublicMessages = async (req, res) => {
 
 export const getPrivateMessages = async (req, res) => {
   try {
-    console.log("Fetching private msgs between:", req.params.a, req.params.b);
+    // console.log("Fetching private msgs between:", req.params.a, req.params.b);
     const { a, b } = req.params;
     const conv = await Conversation.findOne({
       type: "private",
@@ -306,7 +307,7 @@ export const updateProfilePic = async (req, res) => {
 
     res.json({
       success: true,
-      status:200,
+      status: 200,
       message: "Profile picture updated successfully",
       avatarUrl: user.avatar,
     });
@@ -319,3 +320,84 @@ export const updateProfilePic = async (req, res) => {
     });
   }
 };
+
+export const createGroup = async (req, res) => {
+  const { groupName, members, creator } = req.body; // members = array of usernames
+  if (!groupName || !members || !creator)
+    return res.status(400).json({ message: "Missing fields" });
+
+  try {
+    // Check if group name is unique
+    const exists = await Conversation.findOne({ type: "group", groupName });
+    if (exists)
+      return res.status(400).json({ message: "Group name already exists" });
+
+    // Create group conversation
+    const group = new Conversation({
+      type: "group",
+      groupName,
+      participants: members, // e.g., [a,b,c]
+      messages: [],
+    });
+
+    await group.save();
+    res.json({ success: true, group });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getGroupMessage= async (req, res) => {
+  try {
+    const { groupName } = req.params;
+    const group = await Conversation.findOne({ type: "group", groupName });
+     const msgs = group
+      ? group.messages
+          .sort((a, b) => new Date(a.time) - new Date(b.time))
+          .map((m) => ({
+            _id: m._id,
+            by: m.by,
+            text: m.text,
+            file: m.file,
+            time: m.time,
+            chatType: m.chatType,
+          }))
+      : []; // send _id
+    return res.json(msgs);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error",error: error.message});
+  }
+};
+
+export const newGroup= async (req,res) =>{
+ const { name, members } = req.body;
+  if (!name || !members || members.length < 2)
+    return res.status(400).json({ message: "Invalid data" });
+
+  try {
+    const group = new Group({
+      name,
+      members,
+      createdBy: req.user.userName,
+    });
+    // console.log("Creating group:", name, "by", group);
+    await group.save();
+    res.json({ success: true, group });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to create group" });
+  }
+}
+
+export const getGroup=async(req,res)=>{
+  try {
+    const username = req.params.username;
+    console.log("Fetching groups for user:", username);
+    const groups = await Group.find({ members: username });
+    res.json(groups);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch groups" });
+  }
+}

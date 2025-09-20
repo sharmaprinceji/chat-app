@@ -15,6 +15,7 @@ const messageSubSchema = new mongoose.Schema({
   to: { type: String, default: null },          
   time: { type: Date, default: Date.now },
   chatType: { type: String, enum: ["public", "private", "group"], default: "public" },
+  groupId: String, 
 });
 
 const conversationSchema = new mongoose.Schema({

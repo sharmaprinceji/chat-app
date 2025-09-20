@@ -30,7 +30,7 @@
 
         <!-- First name -->
         <span id="username"></span>
-        
+
         <div id="logout-option" class="dropdown-item">Logout</div>
 
         <!-- Hidden input for file upload -->
@@ -60,6 +60,17 @@
 
         <div class="card" id="usersCard" style="margin-top: 10px">
           <div style="font-weight: 600; margin-bottom: 8px">Users / Groups</div>
+
+          <div id="groupHeader" style="display: none; margin-bottom: 8px">
+            <button
+              id="newGroupBtn"
+              class="btn"
+              style="width: 100%; margin-bottom: 6px"
+            >
+              + Create New Group
+            </button>
+          </div>
+
           <div class="user-list" id="leftList"></div>
         </div>
       </div>
@@ -128,6 +139,20 @@
           ><input id="signupUserName" placeholder="abc1234" />
           <button id="signupBtn" class="btn">Signup</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ======== group MODAL ======== -->
+    <div id="createGroupModal" class="modal" style="display: none">
+      <div class="modal-content">
+        <span id="closeGroupModal" class="close-btn">&times;</span>
+        <h3>Create New Group</h3>
+        <input type="text" id="newGroupName" placeholder="Group Name" />
+        <div
+          id="groupUserList"
+          style="max-height: 200px; overflow-y: auto"
+        ></div>
+        <button id="createGroupBtn">Create Group</button>
       </div>
     </div>
 

@@ -33,6 +33,8 @@ export default async function authMiddleware(req, res, next) {
       avatar: user.avatar,
     };
 
+    //console.log("Auth middleware passed for user:", req.user);
+
     next();
   } catch (err) {
     console.error("Auth error:", err);
