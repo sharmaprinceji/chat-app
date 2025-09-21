@@ -23,6 +23,8 @@ const sendBtn = document.getElementById("sendBtn");
 const inputRow = document.querySelector(".input-row");
 const chatHeader = document.querySelector(".chat-header");
 const userCard = document.getElementById("usersCard");
+const listHeading = document.getElementById("list-heading");
+
 // const modesBtns = document.querySelectorAll('input[name="mode"]');
 
 const emojiBtn = document.getElementById("emojiBtn");
@@ -191,6 +193,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (mode === "public") {
       chatHeader.style.display = "none";
       userCard.style.display = "none";
+      listHeading.style.display = "none";
     } else {
       chatHeader.style.display = "flex";
       userCard.style.display = "block";
@@ -553,11 +556,10 @@ async function fetchUsers() {
   }
 }
 
-// updated version of renderUserList with improved logic
+// override renderUserList for group mode selection behavior
 function renderUserList(users) {
   leftList.innerHTML = "";
 
-  // hide list in public mode
   if (mode === "public") {
     leftList.style.display = "none";
     return;
@@ -568,24 +570,33 @@ function renderUserList(users) {
   if (mode === "group") {
     leftList.innerHTML = "";
 
-    // Show existing groups only
-    const groups = allGroups || []; // assume you fetch groups from backend
-    groups.forEach((g) => {
-      const it = document.createElement("div");
-      it.className = "user-item";
-      it.textContent = g.name; // group name
-      it.onclick = async () => {
-        selectedPrivate = g.name; // use same logic as private
-        localStorage.setItem("selectedPrivate", selectedPrivate);
-        clearChat();
-        await loadGroup(selectedPrivate); // group messages
-      };
-      leftList.appendChild(it);
-    });
+    // Show groups with create button at top
+    if (allGroups.length > 0) {
+      allGroups.forEach((g) => {
+        const it = document.createElement("div");
+        it.className = "user-item";
+        it.textContent = g.name;
+        it.onclick = async () => {
+          selectedPrivate = g.name;
+          localStorage.setItem("selectedPrivate", selectedPrivate);
+          clearChat();
+          await loadGroup(selectedPrivate);
+
+          // hide group list & header, show chat
+          leftList.style.display = "none";
+          groupHeader.style.display = "none";
+          chatTitle.textContent = g.name;
+          chatBox.classList.remove("hidden");
+          backBtn.style.display = "block";
+        };
+        leftList.appendChild(it);
+      });
+    }
 
     return;
   }
 
+  // normal private users
   users.forEach((u) => {
     if (u.userName === me.userName) return;
     const it = document.createElement("div");
@@ -601,7 +612,6 @@ function renderUserList(users) {
       renderUserList(allUsers);
       await loadPrivate(selectedPrivate);
 
-      // in phone view, show chat and hide list
       if (window.innerWidth <= 600) {
         document.querySelector(".chat-area").classList.remove("hidden");
         document.querySelector(".left-panel").style.display = "none";
@@ -667,50 +677,40 @@ async function fetchGroups() {
 // When switching mode, adjust view for mobile
 async function onModeChange() {
   clearChat();
-
-  // reset phone responsive UI
   document.querySelector(".chat-area").classList.remove("hidden");
   document.querySelector(".left-panel").style.display = "block";
 
   if (mode === "public") {
     await fetchUsers();
     await loadPublic();
+    chatHeader.style.display = "none";
+    userCard.style.display = "none";
+    listHeading.style.display = "none";
   } else if (mode === "private") {
+    listHeading.style.display = "block";
+    backBtn.style.display = "block";
     await fetchUsers();
-
-    if (window.innerWidth <= 600 && !selectedPrivate) {
-      // hide chat until user picks someone
-      document.querySelector(".chat-area").classList.add("hidden");
-    }
-
-    if (selectedPrivate){
-       await loadPrivate(selectedPrivate);
+    if (selectedPrivate) {
+      await loadPrivate(selectedPrivate);
     } else {
-      // if no one selected, show placeholder
-      const el = document.createElement("div");
-      el.className = "coming-soon";
-      el.textContent = "Select a user to start chatting privately.";
-      chatBox.appendChild(el);
+      chatBox.innerHTML = `<div class="coming-soon">Select a user to start chatting privately.</div>`;
     }
-  } 
-  else if (mode === "group") {
+  } else if (mode === "group") {
+    listHeading.style.display = "block";
+    backBtn.style.display = "none"; // start hidden
     await fetchGroups();
-    updateGroupHeader(); // show create button
+    updateGroupHeader(true);
     renderUserList(allUsers);
 
-    if (window.innerWidth <= 600 && !selectedPrivate) {
-      document.querySelector(".chat-area").classList.add("hidden");
-    }
-    
     if (selectedPrivate) {
-      // load the previously selected group’s messages
       await loadGroup(selectedPrivate);
+      leftList.style.display = "none";
+      updateGroupHeader(false);
+      chatBox.classList.remove("hidden");
+      backBtn.style.display = "block";
     } else {
-      // if no group selected, show placeholder
-      const el = document.createElement("div");
-      el.className = "coming-soon";
-      el.textContent = "Select a group to start chatting.";
-      chatBox.appendChild(el);
+      chatBox.innerHTML = `<div class="coming-soon">Select a group to start chatting.</div>`;
+      chatBox.classList.remove("hidden");
     }
   }
 }
@@ -926,11 +926,19 @@ function openChat(userOrGroup) {
   clearChat();
   loadPrivate(userOrGroup); // or group
 }
-
+// back button logic
 backBtn.addEventListener("click", () => {
-  if (window.innerWidth <= 600) {
-    document.querySelector(".chat-area").classList.add("hidden");
-    document.querySelector(".left-panel").style.display = "block";
+  if (mode === "group") {
+    // show group list again
+    leftList.style.display = "block";
+    updateGroupHeader(true);
+    chatBox.classList.add("hidden");
+    backBtn.style.display = "none";
+  } else {
+    if (window.innerWidth <= 600) {
+      document.querySelector(".chat-area").classList.add("hidden");
+      document.querySelector(".left-panel").style.display = "block";
+    }
   }
 });
 
@@ -1044,10 +1052,10 @@ createGroupBtn.addEventListener("click", async () => {
 ///new logic for crete group button show/hide in group mode
 const groupHeader = document.getElementById("groupHeader");
 
-// Show/hide the "Create New Group" button in group mode
-function updateGroupHeader() {
+// update group header logic: always visible in group mode, hidden when chat open
+function updateGroupHeader(showList = true) {
   if (mode === "group") {
-    groupHeader.style.display = "block";
+    groupHeader.style.display = showList ? "block" : "none";
   } else {
     groupHeader.style.display = "none";
   }
