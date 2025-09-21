@@ -3,7 +3,7 @@ import Conversation from "../model/Conversation.js";
 import User from "../model/User.js";
 import Group from "../model/group.model.js";
 
-const onlineMap = new Map();
+export const onlineMap = new Map();
 
 // Ensure a public conversation exists at startup
 async function ensurePublicConversation() {
@@ -146,7 +146,7 @@ export const eventHandler = async (io) => {
           //   .filter(Boolean);
 
           //console.log("Group sockets 1:===>", senderSocket);
-          console.log("Group sockets 2:===>", recipientSocket);
+         // console.log("Group sockets 2:===>", recipientSocket);
 
          // return;
 

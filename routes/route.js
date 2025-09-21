@@ -4,6 +4,7 @@ import multer from "multer";
 
 import {
   createGroup,
+  deleteGroupMessage,
   deleteMessage,
   deletePrivateMessage,
   getGroup,
@@ -50,5 +51,7 @@ router.get("/messages/group/:groupName/",getGroupMessage);
 router.post("/group/create", authMiddleware, newGroup);
 
 router.get("/groups/:username",getGroup); // reuse listUsers to get groups
+
+router.delete("/messages/group/:id",authMiddleware,deleteGroupMessage);
 
 export default router;

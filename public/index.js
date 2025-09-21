@@ -480,49 +480,35 @@ function appendMessage(m) {
     // delete click handler
     delBtn.addEventListener("click", async (ev) => {
       ev.stopPropagation();
-      // console.log("Current token before delete:", token);
-      const id = el.dataset.msgId;
-      if (!id) {
-        return alert("Cannot delete: message id not available yet.");
-      }
-      if (!token) {
-        return alert("Login required to delete messages");
-      }
 
-      // UI feedback
+      const id = el.dataset.msgId;
+      if (!id) return alert("Cannot delete: message id not available");
+
+      if (!token) return alert("Login required");
+
       delBtn.disabled = true;
       const prev = delBtn.innerHTML;
       delBtn.innerHTML = "…";
 
       try {
-        // Determine whether this message is private.
-        // Prefer explicit m.chatType if present (messages loaded from server),
-        // otherwise fall back to current UI mode.
-        const isPrivate =
-          (m.chatType && m.chatType === "private") || mode === "private";
+        // determine endpoint by mode
+        let endpoint = "/api/v1/messages/" + id; // default
 
-        const endpoint = isPrivate
-          ? `/api/v1/messages/private/${id}`
-          : `/api/v1/messages/${id}`;
+        if (mode === "private") endpoint = `/api/v1/messages/private/${id}`;
+        else if (mode === "group") endpoint = `/api/v1/messages/group/${id}`;
 
-        // call correct endpoint
         const res = await fetch(endpoint, {
           method: "DELETE",
-          headers: {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: "Bearer " + token },
         });
 
         const data = await res.json();
-        console.log("delete response", data);
         if (!res.ok) throw new Error(data.message || "Delete failed");
 
-        // remove locally (server will broadcast too)
-        el.remove();
+        el.remove(); // remove locally
       } catch (err) {
-        console.error("delete error", err);
-        alert("Delete failed: " + (err.message || "unknown"));
+        console.error(err);
+        alert("Delete failed: " + (err.message || ""));
         delBtn.disabled = false;
         delBtn.innerHTML = prev;
       }
@@ -556,7 +542,7 @@ async function fetchUsers() {
   }
 }
 
-// override renderUserList for group mode selection behavior
+//override renderUserList for group mode selection behavior...
 function renderUserList(users) {
   leftList.innerHTML = "";
 
@@ -969,16 +955,34 @@ imgModal.addEventListener("click", (e) => {
 });
 
 //---------delete chat history on double click of header ---------//
+// socket.on("messageDeleted", ({ id }) => {
+//   console.log("Message deleted called by backend --->:", id);
+//   const msgDiv =
+//     document.querySelector(`.message[data-msg-id="${id}"]`) ||
+//     document.querySelector(`.msg[data-id="${id}"]`);
+
+//   if (msgDiv) {
+//     msgDiv.remove();
+//   }
+// });
+
 socket.on("messageDeleted", ({ id }) => {
-  // support both .message and .msg selectors (compatibility)
+  //console.log("Message deleted called by backend --->:", id);
+
+  // try multiple possibilities
   const msgDiv =
     document.querySelector(`.message[data-msg-id="${id}"]`) ||
+    document.querySelector(`.message[data-id="${id}"]`) ||
+    document.querySelector(`.msg[data-msg-id="${id}"]`) ||
     document.querySelector(`.msg[data-id="${id}"]`);
 
   if (msgDiv) {
     msgDiv.remove();
+  } else {
+    console.warn("Message element not found in DOM for id:", id);
   }
 });
+
 
 //group chat model option...
 const createGroupModal = document.getElementById("createGroupModal");

@@ -5,6 +5,7 @@ import Conversation from "../model/Conversation.js";
 import { io } from "../server.js";
 import streamifier from "streamifier";
 import Group from "../model/group.model.js";
+import { onlineMap } from "../events/event.js";
 
 export const login = async (req, res) => {
   try {
@@ -139,77 +140,161 @@ export const getPrivateMessages = async (req, res) => {
   }
 };
 
+// Delete message by ID (only by the author)
 export const deleteMessage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userName, role } = req.user;
-    //console.log("Delete request for msg id:", id, "by", userName);
+    const { userName } = req.user; // authenticated user
 
-    const query =
-      role === "admin"
-        ? { "messages._id": id }
-        : { "messages._id": id, "messages.by": userName };
+    // find conversation containing the message
+    const conversation = await Conversation.findOne({
+      "messages._id": id,
+    });
 
-    const conversation = await Conversation.findOneAndUpdate(
-      query,
-      { $pull: { messages: { _id: id } } },
-      { new: true }
-    );
+    //console.log("Delete public message request for msg ID:", id);
 
-    if (!conversation) {
+    if (!conversation)
+      return res.status(404).json({ message: "Message not found" });
+
+    const msg = conversation.messages.id(id);
+    if (!msg) return res.status(404).json({ message: "Message not found" });
+
+    // check ownership
+    if (msg.me !== userName) {
       return res
-        .status(404)
-        .json({ message: "Message not found or not allowed to delete" });
+        .status(403)
+        .json({ message: "Cannot delete messages of others" });
     }
 
-    io.emit("messageDeleted", { id });
+    // delete message
+    msg.deleteOne(); // or msg.deleteOne() if Mongoose >=6
+
+    await conversation.save();
+
+    // determine recipients for emitting
+    let recipients = [];
+
+    if (conversation.type === "private") {
+      recipients = conversation.participants;
+    } else if (conversation.type === "group") {
+      recipients = conversation.members;
+    } else if (conversation.type === "public") {
+      recipients = []; // emit to all connected clients
+    }
+
+    // emit real-time deletion
+    if (conversation.type === "public") {
+      io.emit("messageDeleted", { id });
+    } else {
+      // emit only to participants
+      const recipientSocket = Array.isArray(recipients)
+        ? recipients.map((u) => onlineMap.get(u)).filter(Boolean)
+        : [];
+      //console.log("Msg deleted, notifying:", recipientSocket);
+      io.to(recipientSocket).emit("messageDeleted", { id });
+    }
     res.json({ success: true });
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Error deleting message", err: err.message });
+    console.error("delete error:", err);
+    res.status(500).json({ message: "Delete failed", error: err.message });
   }
 };
 
 export const deletePrivateMessage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userName, role } = req.user;
 
+    //console.log("Delete private msg ID:", id);
     // private conversation jisme message ho
     const conv = await Conversation.findOne({
       type: "private",
       "messages._id": id,
     });
+    //console.log("Found conversation for deletion:", conv);
     if (!conv) return res.status(404).json({ message: "Message not found" });
 
     const msg = conv.messages.id(id);
 
     // only author or admin can delete
-    if (msg.by !== userName && role !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "Not allowed to delete this message" });
-    }
+    // if (msg.by !== userName && role !== "admin") {
+    //   return res
+    //     .status(403)
+    //     .json({ message: "Not allowed to delete this message" });
+    // }
 
     // 🗑️ Hard delete: remove from array
     msg.deleteOne();
 
     await conv.save();
 
+    const recipientSocket = Array.isArray(conv.participants)
+      ? conv.participants.map((u) => onlineMap.get(u)).filter(Boolean)
+      : [];
+
+    // console.log("Private msg deleted:", recipientSocket, [
+    //   ...conv.participants,
+    //   ...recipientSocket,
+    // ]);
     // notify only participants
-    io.to(conv.participants).emit("messageDeleted", { id });
+    io.to(recipientSocket).emit("messageDeleted", { id });
 
     res.json({ success: true });
   } catch (err) {
     console.error("delete private error:", err);
+    zzz;
+    res.status(500).json({ message: "Delete failed", error: err.message });
+  }
+};
+
+export const deleteGroupMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    //console.log("Delete group msg ID:", id);
+    // private conversation jisme message ho
+    const conv = await Conversation.findOne({
+      type: "group",
+      "messages._id": id,
+    });
+    //console.log("Found conversation for deletion:", conv);
+    if (!conv) return res.status(404).json({ message: "Message not found" });
+
+    const msg = conv.messages.id(id);
+
+    // only author or admin can delete
+    // if (msg.by !== userName && role !== "admin") {
+    //   return res
+    //     .status(403)
+    //     .json({ message: "Not allowed to delete this message" });
+    // }
+
+    // 🗑️ Hard delete: remove from array
+    msg.deleteOne();
+
+    await conv.save();
+    //console.log("participant from DB:", conv.participants);
+    const recipientSocket = Array.isArray(conv.participants)
+      ? conv.participants.map((u) => onlineMap.get(u)).filter(Boolean)
+      : [];
+
+    // console.log("Private msg deleted:", recipientSocket, [
+    //   ...conv.participants,
+    //   ...recipientSocket,
+    // ]);
+    // notify only participants
+    io.to(recipientSocket).emit("messageDeleted", { id });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("delete private error:", err);
+    zzz;
     res.status(500).json({ message: "Delete failed", error: err.message });
   }
 };
 
 export const uploadImage = async (req, res) => {
   try {
-    console.log("Upload request by:", "Guest");
+   // console.log("Upload request by:", "Guest");
     if (!req.file) return res.status(400).json({ message: "No file provided" });
 
     // req.file.buffer is available (multer memoryStorage)
@@ -348,11 +433,11 @@ export const createGroup = async (req, res) => {
   }
 };
 
-export const getGroupMessage= async (req, res) => {
+export const getGroupMessage = async (req, res) => {
   try {
     const { groupName } = req.params;
     const group = await Conversation.findOne({ type: "group", groupName });
-     const msgs = group
+    const msgs = group
       ? group.messages
           .sort((a, b) => new Date(a.time) - new Date(b.time))
           .map((m) => ({
@@ -366,12 +451,14 @@ export const getGroupMessage= async (req, res) => {
       : []; // send _id
     return res.json(msgs);
   } catch (error) {
-    return res.status(500).json({ message: "Server error",error: error.message});
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
 
-export const newGroup= async (req,res) =>{
- const { name, members } = req.body;
+export const newGroup = async (req, res) => {
+  const { name, members } = req.body;
   if (!name || !members || members.length < 2)
     return res.status(400).json({ message: "Invalid data" });
 
@@ -388,16 +475,16 @@ export const newGroup= async (req,res) =>{
     console.error(err);
     res.status(500).json({ message: "Failed to create group" });
   }
-}
+};
 
-export const getGroup=async(req,res)=>{
+export const getGroup = async (req, res) => {
   try {
     const username = req.params.username;
-    console.log("Fetching groups for user:", username);
+    //console.log("Fetching groups for user:", username);
     const groups = await Group.find({ members: username });
     res.json(groups);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch groups" });
   }
-}
+};
