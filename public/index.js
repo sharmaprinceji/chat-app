@@ -418,6 +418,7 @@ document.addEventListener("click", (e) => {
 function clearChat() {
   chatBox.innerHTML = "";
 }
+
 function timeHM(d) {
   return new Date(d).toLocaleTimeString([], {
     hour: "2-digit",
@@ -544,6 +545,7 @@ async function fetchUsers() {
 
 //override renderUserList for group mode selection behavior...
 function renderUserList(users) {
+  console.log("Rendering user list for mode:", users);
   leftList.innerHTML = "";
 
   if (mode === "public") {
@@ -553,28 +555,58 @@ function renderUserList(users) {
     leftList.style.display = "block";
   }
 
+  // Helper: create initials circle
+  function createInitialsCircle(name) {
+    let initials = "";
+    if (name) {
+      const parts = name.trim().split(" ");
+      initials = parts[0].charAt(0).toUpperCase();
+      if (parts.length > 1) {
+        initials += parts[parts.length - 1].charAt(0).toUpperCase();
+      } else if (name.length > 1) {
+        initials += name.charAt(name.length - 1).toUpperCase();
+      }
+    }
+
+    return `<div style="width:40px;height:40px;border-radius:50%;
+                          background:#ccc;display:flex;align-items:center;
+                          justify-content:center;font-weight:600;color:#333;">
+                ${initials}
+              </div>`;
+  }
+
   if (mode === "group") {
     leftList.innerHTML = "";
 
-    // Show groups with create button at top
     if (allGroups.length > 0) {
       allGroups.forEach((g) => {
+        const profileElement = createInitialsCircle(g.name);
+
         const it = document.createElement("div");
         it.className = "user-item";
-        it.textContent = g.name;
+        it.style.display = "flex";
+        it.style.alignItems = "center"; // not "left", use center for vertical alignment
+        it.style.gap = "5px"; // exact 5px gap
+        it.style.cursor = "pointer";
+
+        it.innerHTML = `
+        ${profileElement}
+        <div style="margin:0;padding:0;">${g.name}</div>
+      `;
+
         it.onclick = async () => {
           selectedPrivate = g.name;
           localStorage.setItem("selectedPrivate", selectedPrivate);
           clearChat();
           await loadGroup(selectedPrivate);
 
-          // hide group list & header, show chat
           leftList.style.display = "none";
           groupHeader.style.display = "none";
           chatTitle.textContent = g.name;
           chatBox.classList.remove("hidden");
           backBtn.style.display = "block";
         };
+
         leftList.appendChild(it);
       });
     }
@@ -588,9 +620,50 @@ function renderUserList(users) {
     const it = document.createElement("div");
     it.className = "user-item";
     let badge = "";
+
     if (unreadCounts[u.userName] && unreadCounts[u.userName] > 0)
       badge = `<span class="badge">${unreadCounts[u.userName]}</span>`;
-    it.innerHTML = `<div>${u.name}<div style="font-size:11px;color:gray">@${u.userName}</div></div>${badge}`;
+    // it.innerHTML = `<div>${u.name}<div style="font-size:11px;color:gray">@${u.userName}</div></div>${badge}`;
+
+    // Generate initials from name
+    let initials = "";
+    if (u.name) {
+      const parts = u.name.trim().split(" ");
+      initials = parts[0].charAt(0).toUpperCase();
+      if (parts.length > 1)
+        initials += parts[parts.length - 1].charAt(0).toUpperCase();
+    }
+
+    // Profile block
+    let profileElement;
+    if (u.avatar && u.avatar !== "default.png") {
+      profileElement = `
+    <div style="width:40px;height:40px;position:relative;">
+      <img src="${u.avatar}" 
+           style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+    </div>`;
+    } else {
+      profileElement = `
+    <div style="width:40px;height:40px;border-radius:50%;
+                background:#ccc;display:flex;
+                align-items:center;justify-content:center;
+                font-weight:600;color:#333;">
+      ${initials}
+    </div>`;
+    }
+
+    // Final HTML
+    it.innerHTML = `
+  <div style="display:flex;align-items:center;gap:10px;">
+    ${profileElement}
+    <div>
+      <div>${u.name}</div>
+      <div style="font-size:11px;color:gray">@${u.userName}</div>
+    </div>
+  </div>
+  ${badge}
+`;
+
     it.onclick = async () => {
       selectedPrivate = u.userName;
       localStorage.setItem("selectedPrivate", selectedPrivate);
@@ -982,7 +1055,6 @@ socket.on("messageDeleted", ({ id }) => {
     console.warn("Message element not found in DOM for id:", id);
   }
 });
-
 
 //group chat model option...
 const createGroupModal = document.getElementById("createGroupModal");
