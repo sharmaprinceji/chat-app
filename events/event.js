@@ -1,7 +1,7 @@
-import { io } from "../server.js";
 import Conversation from "../model/Conversation.js";
 import User from "../model/User.js";
 import Group from "../model/group.model.js";
+import { redisClient } from "../redis/redisClient.js";
 
 export const onlineMap = new Map();
 
@@ -21,20 +21,23 @@ async function ensurePublicConversation() {
 export const eventHandler = async (io) => {
   ensurePublicConversation().catch(console.error);
 
-  io.on("connection", (socket) => {
-    console.log(
-      "New socket connected",
-      socket.id,
-      "Total users online:",
-      onlineMap.size
-    );
-
+  io.on("connection", async (socket) => {
     // client tells server who they are after connecting
-    socket.on("identify", (payload) => {
+    socket.on("identify", async (payload) => {
       const { userName } = payload;
       if (userName) {
         onlineMap.set(userName, socket.id);
-        console.log("Identify:", onlineMap);
+        // const redisKey = `user:${userName}`;
+        // const socketId =  `user:${socket.id}`;
+        //await redisClient.set(redisKey,socketId);
+        console.log(
+          "New socket connected",
+          socket.id,
+          "Total users online:",
+          Array.from(onlineMap.entries()), // show map content
+          //"Redis keys:",
+          //await redisClient.keys("user:*")
+        );
       }
     });
 
@@ -140,29 +143,41 @@ export const eventHandler = async (io) => {
             ? participants.map((u) => onlineMap.get(u)).filter(Boolean)
             : [];
 
-          //Emit to all group participants
-          // const sockets = group.participants
-          //   .map((u) => onlineMap.get(u))
-          //   .filter(Boolean);
+          // const keys = Array.isArray(participants)
+          //   ? participants.map((u) => `user:${u}`)
+          //   : [];
 
-          //console.log("Group sockets 1:===>", senderSocket);
-         // console.log("Group sockets 2:===>", recipientSocket);
-
-         // return;
+          // ioredis uses .mget (lowercase)
+          // const socketIdsRaw = await redisClient.mget(...keys);
+          // const socketIds = socketIdsRaw.filter(Boolean);
+          // console.log("Group msg sockets by using redis:", socketIds);
+          // console.log("Group msg participants:", participants);
 
           // //sockets.forEach((sock) => io.to(sock).emit("receive_msg", msgObj));
-          io.to(recipientSocket).emit("receive_msg", { ...data, time: msgObj.time });
+          io.to(recipientSocket).emit("receive_msg", {
+            ...data,
+            time: msgObj.time,
+          });
         }
       } catch (err) {
         console.error("chat msg err", err);
       }
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       // remove from onlineMap
       for (const [uname, sid] of onlineMap.entries()) {
         if (sid === socket.id) onlineMap.delete(uname);
       }
+
+      //remove from redis
+      // const keys = await redisClient.keys("*"); // fetch all keys
+      // for (let key of keys) {
+      //   const val = await redisClient.get(key); // get value of each key
+      //   if (val === socket.id) {
+      //     await redisClient.del(key); // delete if value matches socket.id
+      //   }
+      // }
       console.log("Socket disconnected", socket.id);
     });
   });
