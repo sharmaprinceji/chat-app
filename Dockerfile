@@ -1,20 +1,18 @@
-# Base image
-FROM node:20-alpine
+FROM node:20
 
-# Working directory inside container
 WORKDIR /usr/src/app
 
-# Copy package files first (to use Docker cache)
+# Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --production=false
+# Install all dependencies including devDependencies
+RUN npm install --include=dev
 
-# Copy app source
+# Copy the rest of the app
 COPY . .
 
-# Expose the app port
+# Expose port 9000
 EXPOSE 9000
 
-# Default command (used in production)
-CMD ["node", "server.js"]
+# Start the app using nodemon
+CMD ["npm", "run", "dev"]
