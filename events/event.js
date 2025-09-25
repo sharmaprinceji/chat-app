@@ -29,12 +29,37 @@ export const eventHandler = async (io) => {
     eachMessage: async ({ message }) => {
       try {
         const msgData = JSON.parse(message.value.toString());
+        //bulid msg object
+        const msgObj = {
+            text: msgData.message,
+            file: msgData.file ? { ...msgData.file } : null,
+            by: msgData.userName,
+            to: msgData.to,
+            chatType: msgData.chatType,
+            time: msgData.time ? msgData.time : new Date(),
+          };
 
         if (msgData.chatType === "public") {
+          //store in db by using message object
+          await Conversation.findOneAndUpdate(
+            { type: "public" },
+            { $push: { messages: msgObj } },
+            { upsert: true, new: true }
+          );
+
           io.emit("receive_msg", msgData);
         } else if (msgData.chatType === "private") {
           const senderSocket = onlineMap.get(msgData.by);
           const recipientSocket = onlineMap.get(msgData.to);
+          const participants = [msgData.userName, msgData.to].sort();
+          await Conversation.findOneAndUpdate(
+            { type: "private", participants },
+            {
+              $push: { messages: msgObj },
+              $setOnInsert: { type: "private", participants },
+            },
+            { upsert: true, new: true }
+          );
 
           if (senderSocket) io.to(senderSocket).emit("receive_msg", msgData);
           if (recipientSocket)
@@ -45,7 +70,31 @@ export const eventHandler = async (io) => {
             { name: msgData.to },
             { members: 1 }
           );
-          //console.log("Group members:", group);
+
+           const gpmsgObj = {
+            by: msgData?.userName,
+            to: "",
+            text: msgData?.message,
+            file: msgData?.file || null,
+            time: msgData?.time ? msgData.time : new Date(),
+            chatType: msgData?.chatType || "group",
+            groupId: group._id.toString(),
+            groupName: msgData?.to,
+          };
+
+         await Conversation.findOneAndUpdate(
+            { type: "group", groupName: msgData?.to }, // first check by groupName
+            {
+              $push: { messages: gpmsgObj },
+              $setOnInsert: {
+                type: "group",
+                participants: group.members,
+                groupName: msgData?.to,
+              },
+            },
+            { upsert: true, new: true }
+          );
+
           const sockets = group.members
             .map((u) => onlineMap.get(u))
             .filter(Boolean);
