@@ -2,8 +2,10 @@ import Conversation from "../model/Conversation.js";
 import User from "../model/User.js";
 import Group from "../model/group.model.js";
 import { redisClient } from "../redis/redisClient.js";
+import { consumer, producer,initKafka } from "../events/kafka/kafkaClient.js";
 
 export const onlineMap = new Map();
+await initKafka(); // Initialize Kafka producer and consumer
 
 // Ensure a public conversation exists at startup
 async function ensurePublicConversation() {
@@ -20,6 +22,38 @@ async function ensurePublicConversation() {
 
 export const eventHandler = async (io) => {
   ensurePublicConversation().catch(console.error);
+  //await initKafka(); // Initialize Kafka producer and consumer
+
+  // ✅ Kafka consumer will handle broadcasting messages
+  await consumer.run({
+    eachMessage: async ({ message }) => {
+      try {
+        const msgData = JSON.parse(message.value.toString());
+
+        if (msgData.chatType === "public") {
+          io.emit("receive_msg", msgData);
+        } else if (msgData.chatType === "private") {
+          const senderSocket = onlineMap.get(msgData.by);
+          const recipientSocket = onlineMap.get(msgData.to);
+
+          if (senderSocket) io.to(senderSocket).emit("receive_msg", msgData);
+          if (recipientSocket)
+            io.to(recipientSocket).emit("receive_msg", msgData);
+        } else if (msgData.chatType === "group") {
+          const group = await Group.findOne(
+            { name: msgData.groupName },
+            { members: 1 }
+          );
+          const sockets = group.members
+            .map((u) => onlineMap.get(u))
+            .filter(Boolean);
+          sockets.forEach((sock) => io.to(sock).emit("receive_msg", msgData));
+        }
+      } catch (err) {
+        console.error("Kafka consumer error", err);
+      }
+    },
+  });
 
   io.on("connection", async (socket) => {
     // client tells server who they are after connecting
@@ -34,7 +68,7 @@ export const eventHandler = async (io) => {
           "New socket connected",
           socket.id,
           "Total users online:",
-          Array.from(onlineMap.entries()), // show map content
+          Array.from(onlineMap.entries()) // show map content
           //"Redis keys:",
           //await redisClient.keys("user:*")
         );
@@ -159,6 +193,13 @@ export const eventHandler = async (io) => {
             time: msgObj.time,
           });
         }
+
+        // ✅ Send message via Kafka producer
+        await producer.send({
+          topic: "chat-messages",
+          messages: [{ value: JSON.stringify({ ...data, time: msgObj.time }) }],
+        });
+        
       } catch (err) {
         console.error("chat msg err", err);
       }

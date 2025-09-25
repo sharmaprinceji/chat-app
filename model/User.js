@@ -10,6 +10,6 @@ const userSchema = new mongoose.Schema({
   status: { type: String, enum: ["online", "offline"], default: "offline" },
 }, { timestamps: true });
 
-userSchema.index({ userName: 1 });
+//userSchema.index({ userName: 1 });
 const User = mongoose.model("User", userSchema);
 export default User;

@@ -1,21 +1,56 @@
 version: "3.9"
 
 services:
-  chat-app:
-    build: .
-    container_name: chat-app
-    ports:
-      - "9000:9000"       # map container port 9000 to host
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    depends_on:
-      - redis-server
+  zookeeper:
+    image: bitnami/zookeeper:3.9.0
+    container_name: zookeeper
     environment:
-      - NODE_ENV=development
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports:
+      - "2181:2181"
+    networks:
+      - chatnet
+
+  kafka:
+    image: bitnami/kafka:3.5.0
+    container_name: kafka
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - chatnet
 
   redis-server:
     image: redis:6.2
     container_name: redis-server
     ports:
       - "6379:6379"
+    networks:
+      - chatnet
+
+  chat-app:
+    build: .
+    container_name: chat-app
+    ports:
+      - "9000:9000"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      - kafka
+      - redis-server
+    environment:
+      NODE_ENV: development
+      KAFKA_BROKER: kafka:9092
+      REDIS_HOST: redis-server
+    networks:
+      - chatnet
+
+networks:
+  chatnet:
+    driver: bridge
