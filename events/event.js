@@ -1,7 +1,7 @@
 import Conversation from "../model/Conversation.js";
 import User from "../model/User.js";
 import Group from "../model/group.model.js";
-import { redisClient } from "../redis/redisClient.js";
+// import { redisClient } from "../redis/redisClient.js";
 import { consumer, producer, initKafka } from "../events/kafka/kafkaClient.js";
 
 export const onlineMap = new Map();
