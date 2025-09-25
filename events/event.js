@@ -2,7 +2,7 @@ import Conversation from "../model/Conversation.js";
 import User from "../model/User.js";
 import Group from "../model/group.model.js";
 import { redisClient } from "../redis/redisClient.js";
-import { consumer, producer,initKafka } from "../events/kafka/kafkaClient.js";
+import { consumer, producer, initKafka } from "../events/kafka/kafkaClient.js";
 
 export const onlineMap = new Map();
 await initKafka(); // Initialize Kafka producer and consumer
@@ -40,10 +40,12 @@ export const eventHandler = async (io) => {
           if (recipientSocket)
             io.to(recipientSocket).emit("receive_msg", msgData);
         } else if (msgData.chatType === "group") {
+          //console.log("Group message data:", msgData);
           const group = await Group.findOne(
-            { name: msgData.groupName },
+            { name: msgData.to },
             { members: 1 }
           );
+          //console.log("Group members:", group);
           const sockets = group.members
             .map((u) => onlineMap.get(u))
             .filter(Boolean);
@@ -106,100 +108,100 @@ export const eventHandler = async (io) => {
           time: new Date(),
         };
 
-        if (chatType === "public") {
-          await Conversation.findOneAndUpdate(
-            { type: "public" },
-            { $push: { messages: msgObj } },
-            { upsert: true, new: true }
-          );
-          socket.broadcast.emit("receive_msg", { ...data, time: msgObj.time });
-        } else if (chatType === "private") {
-          const participants = [userName, to].sort();
-          await Conversation.findOneAndUpdate(
-            { type: "private", participants },
-            {
-              $push: { messages: msgObj },
-              $setOnInsert: { type: "private", participants },
-            },
-            { upsert: true, new: true }
-          );
+        // if (chatType === "public") {
+        //   await Conversation.findOneAndUpdate(
+        //     { type: "public" },
+        //     { $push: { messages: msgObj } },
+        //     { upsert: true, new: true }
+        //   );
+        //   socket.broadcast.emit("receive_msg", { ...data, time: msgObj.time });
+        // } else if (chatType === "private") {
+        //   const participants = [userName, to].sort();
+        //   await Conversation.findOneAndUpdate(
+        //     { type: "private", participants },
+        //     {
+        //       $push: { messages: msgObj },
+        //       $setOnInsert: { type: "private", participants },
+        //     },
+        //     { upsert: true, new: true }
+        //   );
 
-          const senderSocket = onlineMap.get(userName);
-          const recipientSocket = onlineMap.get(to);
+        //   const senderSocket = onlineMap.get(userName);
+        //   const recipientSocket = onlineMap.get(to);
 
-          if (senderSocket)
-            io.to(senderSocket).emit("receive_msg", {
-              ...data,
-              time: msgObj.time,
-            });
-          if (recipientSocket)
-            io.to(recipientSocket).emit("receive_msg", {
-              ...data,
-              time: msgObj.time,
-            });
-        }
-        // in your existing chat message route or socket listener
-        else if (chatType === "group") {
-          const allParticipants = await Group.findOne(
-            { name: to },
-            { members: 1, _id: 1 }
-          );
+        //   if (senderSocket)
+        //     io.to(senderSocket).emit("receive_msg", {
+        //       ...data,
+        //       time: msgObj.time,
+        //     });
+        //   if (recipientSocket)
+        //     io.to(recipientSocket).emit("receive_msg", {
+        //       ...data,
+        //       time: msgObj.time,
+        //     });
+        // }
+        // // in your existing chat message route or socket listener
+        // else if (chatType === "group") {
+        //   const allParticipants = await Group.findOne(
+        //     { name: to },
+        //     { members: 1, _id: 1 }
+        //   );
 
-          const msgObj = {
-            by: userName,
-            to: "",
-            text: data.message,
-            file: data.file || null,
-            time: new Date(),
-            chatType: "group",
-            groupId: allParticipants._id.toString(),
-            groupName: to,
-          };
+        //   const msgObj = {
+        //     by: userName,
+        //     to: "",
+        //     text: data.message,
+        //     file: data.file || null,
+        //     time: new Date(),
+        //     chatType: "group",
+        //     groupId: allParticipants._id.toString(),
+        //     groupName: to,
+        //   };
 
-          //console.log("New message:===>", msgObj);
+        //   //console.log("New message:===>", msgObj);
 
-          const participants = allParticipants.members;
-          const group = await Conversation.findOneAndUpdate(
-            { type: "group", groupName: to }, // first check by groupName
-            {
-              $push: { messages: msgObj },
-              $setOnInsert: {
-                type: "group",
-                participants,
-                groupName: to,
-              },
-            },
-            { upsert: true, new: true }
-          );
+        //   const participants = allParticipants.members;
+        //   const group = await Conversation.findOneAndUpdate(
+        //     { type: "group", groupName: to }, // first check by groupName
+        //     {
+        //       $push: { messages: msgObj },
+        //       $setOnInsert: {
+        //         type: "group",
+        //         participants,
+        //         groupName: to,
+        //       },
+        //     },
+        //     { upsert: true, new: true }
+        //   );
 
-          if (!group) return;
-          const recipientSocket = Array.isArray(participants)
-            ? participants.map((u) => onlineMap.get(u)).filter(Boolean)
-            : [];
+        //   if (!group) return;
+        //   const recipientSocket = Array.isArray(participants)
+        //     ? participants.map((u) => onlineMap.get(u)).filter(Boolean)
+        //     : [];
 
-          // const keys = Array.isArray(participants)
-          //   ? participants.map((u) => `user:${u}`)
-          //   : [];
+        //   // const keys = Array.isArray(participants)
+        //   //   ? participants.map((u) => `user:${u}`)
+        //   //   : [];
 
-          // ioredis uses .mget (lowercase)
-          // const socketIdsRaw = await redisClient.mget(...keys);
-          // const socketIds = socketIdsRaw.filter(Boolean);
-          // console.log("Group msg sockets by using redis:", socketIds);
-          // console.log("Group msg participants:", participants);
+        //   // ioredis uses .mget (lowercase)
+        //   // const socketIdsRaw = await redisClient.mget(...keys);
+        //   // const socketIds = socketIdsRaw.filter(Boolean);
+        //   // console.log("Group msg sockets by using redis:", socketIds);
+        //   // console.log("Group msg participants:", participants);
 
-          // //sockets.forEach((sock) => io.to(sock).emit("receive_msg", msgObj));
-          io.to(recipientSocket).emit("receive_msg", {
-            ...data,
-            time: msgObj.time,
-          });
-        }
+        //   // //sockets.forEach((sock) => io.to(sock).emit("receive_msg", msgObj));
+        //   io.to(recipientSocket).emit("receive_msg", {
+        //     ...data,
+        //     time: msgObj.time,
+        //   });
+        // }
 
         // ✅ Send message via Kafka producer
         await producer.send({
           topic: "chat-messages",
           messages: [{ value: JSON.stringify({ ...data, time: msgObj.time }) }],
         });
-        
+        //await safeSendMessage({ ...data, time: msgObj.time });
       } catch (err) {
         console.error("chat msg err", err);
       }
