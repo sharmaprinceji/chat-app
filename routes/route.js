@@ -7,6 +7,7 @@ import {
   deleteGroupMessage,
   deleteMessage,
   deletePrivateMessage,
+  gemini,
   getGroup,
   getGroupMessage,
   getPrivateMessages,
@@ -53,5 +54,7 @@ router.post("/group/create", authMiddleware, newGroup);
 router.get("/groups/:username",getGroup); // reuse listUsers to get groups
 
 router.delete("/messages/group/:id",authMiddleware,deleteGroupMessage);
+
+router.post("/gemini",gemini);
 
 export default router;

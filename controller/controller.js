@@ -488,3 +488,51 @@ export const getGroup = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch groups" });
   }
 };
+
+export const gemini = async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ message: "Prompt is required" });
+    }
+    
+    const apiKey = process.env.GEMINI_API_KEY;
+    const endpoint = process.env.GEMINI_ENDPOINT;
+    if (!apiKey || !endpoint) {
+      return res.status(500).json({ message: "Gemini API not configured" });
+    }
+    
+    const response = await fetch(endpoint, {  
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        prompt: {
+          text: prompt
+        },
+        maxOutputTokens: 1024,
+        temperature: 0.7,
+        topP: 0.8,
+        topK: 40
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error:", errorText);
+      return res.status(500).json({ message: "Gemini API error", error: errorText });
+    }
+    
+    const data = await response.json();
+    const generatedText = data.candidates && data.candidates.length > 0 ? data.candidates[0].output : "";
+    
+    return res.json({ response: generatedText });
+    
+  }
+  catch (err) {
+    console.error("Gemini error:", err);
+    return res.status(500).json({ message: "Error generating text", error: err.message });
+  }   
+};
